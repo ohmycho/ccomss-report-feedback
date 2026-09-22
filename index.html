@@ -52,7 +52,14 @@
       #brandNameTop 텍스트만 바꾸면 됨(로직 변경 불필요).
     b15 (이 파일): 앱 이름 확정 — "피드톡"으로 상단 브랜드 영역/<title> 태그 변경.
       한 줄 소개에 "AI" 명시: "학습리포트와 부모님피드백을 동시에" → "AI가 학습리포트와 부모님피드백을 동시에".
-  현재 빌드: b15 · 2026-09-22
+    b16 (이 파일): 상단바를 제품처럼 보이게 정리 — 브랜드명 앞 주황 점(brand-dot) 제거,
+      한 줄 슬로건은 더 얇고 작게(font-weight 600→400, 15px→13px), 버전/빌드 표시(v2.1·idx)는
+      우측 상단 구석에 더 작게 분리 배치. 로고 이미지는 별도로 시안만 만들어 검토 후 적용 예정
+      (아직 이 파일에는 반영 안 함).
+    b17 (이 파일): 로고 컨셉 2(말풍선 아이콘 + 워드마크) 선택 반영 — 상단 브랜드 영역에
+      .brand-mark(CSS 도형으로 만든 임시 말풍선 아이콘) 추가. 지금은 코드로 그린 임시 도형이며,
+      나중에 정식 SVG/이미지 로고로 교체할 예정(그때 .brand-mark 자리만 바꾸면 됨).
+  현재 빌드: b17 · 2026-09-22
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -90,15 +97,22 @@
     padding:20px 20px 16px;
     position:sticky;top:0;z-index:10;
   }
-  .topbar-title{font-size:15px;font-weight:600;opacity:0.85;margin-bottom:4px;}
+  .topbar-version{
+    position:absolute;top:10px;right:16px;
+    font-size:10px;font-weight:500;opacity:0.38;letter-spacing:0.01em;
+  }
+  .topbar-title{font-size:13px;font-weight:400;opacity:0.7;margin-top:4px;}
   .topbar-brand{
-    font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px;
+    font-size:22px;font-weight:700;display:flex;align-items:center;gap:8px;
     border:none;background:transparent;color:#fff;font-family:inherit;padding:2px 0;
+    letter-spacing:-0.01em;
     cursor:pointer;transition:opacity .12s ease, transform .12s ease;
   }
-  .topbar-brand span:not(.brand-dot){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .topbar-brand span:not(.brand-mark){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .topbar-brand:active{opacity:0.7;transform:scale(0.98);}
-  .brand-dot{width:10px;height:10px;border-radius:50%;background:var(--brand-accent);flex-shrink:0;}
+  /* 로고 컨셉 2 — 말풍선 아이콘 (2026-09-22 확정, 임시 CSS 도형. 실제 SVG/이미지 로고로 추후 교체 예정) */
+  .brand-mark{position:relative;width:26px;height:22px;border-radius:8px;background:var(--brand-accent);flex-shrink:0;}
+  .brand-mark::after{content:"";position:absolute;left:6px;bottom:-5px;width:8px;height:8px;background:var(--brand-accent);clip-path:polygon(0 0, 100% 0, 0 100%);border-bottom-left-radius:2px;}
 
   .tabs{display:flex;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:76px;z-index:9;}
   .tab{flex:1;text-align:center;padding:13px 0;font-size:14px;font-weight:600;color:var(--text-sub);cursor:pointer;border-bottom:2px solid transparent;}
@@ -279,11 +293,12 @@
 <div class="app" id="app">
 
   <div class="topbar">
+    <div class="topbar-version">v2.1 · idx b17</div>
     <button class="topbar-brand" id="homeBtn" type="button" aria-label="홈으로">
-      <span class="brand-dot"></span>
+      <span class="brand-mark" aria-hidden="true"></span>
       <span id="brandNameTop">피드톡</span>
     </button>
-    <div class="topbar-title">AI가 학습리포트와 부모님피드백을 동시에 <span style="opacity:0.55;font-weight:500;">v2.1</span> <span style="opacity:0.4;font-weight:500;font-size:10.5px;">· idx b15</span></div>
+    <div class="topbar-title">AI가 학습리포트와 부모님피드백을 동시에</div>
   </div>
 
   <div class="mode-picker" aria-label="도구 선택">
