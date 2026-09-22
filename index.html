@@ -14,9 +14,16 @@
     b03: 위저드 이전/다음 버튼을 화면 하단 고정(sticky bottom bar)으로 변경
     b04: 1단계에서 "이전" 버튼을 visibility:hidden → display:none으로 바꿔
       "다음" 버튼이 오른쪽으로 치우쳐 보이던 문제 수정
-    b05 (이 파일): 위저드 스텝 전환에 방향성 슬라이드+페이드 애니메이션 추가(다음=오른쪽에서, 이전=왼쪽에서),
+    b05: 위저드 스텝 전환에 방향성 슬라이드+페이드 애니메이션 추가(다음=오른쪽에서, 이전=왼쪽에서),
       버튼 클릭 시 눌리는 느낌(scale down) 추가
-  현재 빌드: b05 · 2026-09-22
+    b06: 도구 이름을 브랜드 종속적("두뇌로리포트"/"꼼즈 피드백")에서 범용 기능명
+      ("학습 리포트"/"부모님 피드백")으로 변경 — 다른 방문학습 브랜드에 판매할 때 혼동 방지.
+      브랜드명은 상단 브랜드바에서 별도 표시
+    b07 (이 파일): 부모님 피드백 입력에 "관련 학습 포인트(선택)" 필드 추가 — 실제 현장에서는
+      수업 관찰 피드백에 학습 지표(오답률 개선 등)를 같이 언급하는 경우가 많아, 두 도구의
+      입력/생성 로직은 분리하되 피드백 문안에 학습 포인트를 자연스럽게 엮을 수 있도록 함.
+      generate-feedback.js도 같이 업데이트 필요 (functions 폴더 파일도 재배포할 것)
+  현재 빌드: b07 · 2026-09-22
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -24,7 +31,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>두뇌로리포트 · 꼼즈 피드백 데모</title>
+<title>학습 리포트 · 부모님 피드백 데모</title>
 <link rel="stylesheet" as="style" crossorigin
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
@@ -230,7 +237,7 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-title">두뇌로리포트 · 꼼즈 피드백 데모 <span style="opacity:0.55;font-weight:500;">v2.1</span> <span style="opacity:0.4;font-weight:500;font-size:10.5px;">· idx b05</span></div>
+    <div class="topbar-title">학습 리포트 · 부모님 피드백 데모 <span style="opacity:0.55;font-weight:500;">v2.1</span> <span style="opacity:0.4;font-weight:500;font-size:10.5px;">· idx b07</span></div>
     <div class="topbar-brand">
       <span class="brand-dot"></span>
       <span id="brandNameTop">꼼즈광교</span>
@@ -239,8 +246,8 @@
   </div>
 
   <div class="mode-picker" aria-label="도구 선택">
-    <button class="mode-btn active" id="reportModeBtn" type="button"><strong>① 두뇌로리포트</strong><span>평가 항목 입력 → 학습 리포트</span></button>
-    <button class="mode-btn" id="feedbackModeBtn" type="button"><strong>② 꼼즈 피드백</strong><span>수업 관찰 입력 → 학부모 피드백</span></button>
+    <button class="mode-btn active" id="reportModeBtn" type="button"><strong>① 학습 리포트</strong><span>평가 항목 입력 → 학습 리포트</span></button>
+    <button class="mode-btn" id="feedbackModeBtn" type="button"><strong>② 부모님 피드백</strong><span>수업 관찰 입력 → 학부모 피드백</span></button>
   </div>
   <div class="demo-notice">시연용 화면입니다. 실제 학생 이름·상담 내용·연락처를 입력하지 마세요.</div>
 
@@ -342,7 +349,7 @@
 
   <div class="feedback-panel" id="feedbackWorkspace">
     <div class="card">
-      <div class="card-title">꼼즈 피드백 입력 <small>두뇌로리포트와 별도</small></div>
+      <div class="card-title">부모님 피드백 입력 <small>입력은 학습 리포트와 별도</small></div>
       <p class="field-help">실제로 본 행동과 들은 말을 먼저 적고, 선생님의 해석은 구분해 적습니다.</p>
       <label class="field-label" for="feedbackStudent">학생 표시 이름</label>
       <input id="feedbackStudent" type="text" placeholder="예: 학생 A (가명)">
@@ -352,6 +359,9 @@
       <textarea id="feedbackStart" placeholder="예: 시작 전 어렵다고 말하며 뺄셈을 피하려 함"></textarea>
       <label class="field-label" for="feedbackAction">수업에서 확인된 행동·성과</label>
       <textarea id="feedbackAction" placeholder="예: 소수점 위치를 맞추는 방법을 익히고 뺄셈 문제를 스스로 해결함"></textarea>
+      <label class="field-label" for="feedbackLearningPoint">관련 학습 포인트 (선택)</label>
+      <textarea id="feedbackLearningPoint" placeholder="예: 이번 단원 오답률 20%→10%로 개선, 소수 연산 84점"></textarea>
+      <p class="field-help">최근 진단/성적 관련 수치가 있으면 적어주세요 — 수업 관찰 내용과 자연스럽게 엮어서 문안에 반영됩니다.</p>
       <label class="field-label" for="feedbackQuote">학생이 직접 한 말 (선택)</label>
       <textarea id="feedbackQuote" placeholder="예: 발표하는 건 부끄러워요"></textarea>
       <label class="field-label" for="feedbackInterpretation">선생님의 해석·가설 (선택)</label>
@@ -594,7 +604,7 @@ function renderReport(studentName, values, dateStr, narrativeText, sourceTag){
 
   const html = `
     <div class="report-card">
-      <div class="rc-brand">${b.name} · 두뇌로리포트</div>
+      <div class="rc-brand">${b.name} · 학습 리포트</div>
       <div class="rc-name">${escapeHtml(studentName)} 학생</div>
       <div class="rc-date">${dateStr}</div>
       ${scoreEntries.length ? `<div class="score-grid">${scoreGrid}</div>` : ""}
@@ -835,7 +845,7 @@ function selectMode(mode){
 document.getElementById("reportModeBtn").addEventListener("click", ()=>selectMode("report"));
 document.getElementById("feedbackModeBtn").addEventListener("click", ()=>selectMode("feedback"));
 
-const feedbackIds = ["feedbackStudent","feedbackSession","feedbackStart","feedbackAction","feedbackQuote","feedbackInterpretation","feedbackNext","feedbackHome"];
+const feedbackIds = ["feedbackStudent","feedbackSession","feedbackStart","feedbackAction","feedbackLearningPoint","feedbackQuote","feedbackInterpretation","feedbackNext","feedbackHome"];
 function feedbackValue(id){ return document.getElementById(id).value.trim(); }
 let feedbackDraft = "";
 
@@ -845,6 +855,7 @@ document.getElementById("feedbackExampleBtn").addEventListener("click", ()=>{
     feedbackSession:"7회차 · 소수의 덧셈과 뺄셈",
     feedbackStart:"처음에는 아직 배우지 않았다며 뺄셈 문제를 피하려 했습니다.",
     feedbackAction:"소수점 위치를 맞추는 방법을 설명한 뒤, 소수의 뺄셈 문제를 스스로 해결했습니다.",
+    feedbackLearningPoint:"이번 단원(소수의 덧셈과 뺄셈) 오답률 20% → 10%로 개선",
     feedbackQuote:"발표하는 건 부끄러워요.",
     feedbackInterpretation:"정답을 말하는 상황을 부담스러워할 가능성이 있습니다. 다음 시간에도 관찰이 필요합니다.",
     feedbackNext:"스스로 고른 쉬운 문제부터 풀고, 답을 말할지는 학생이 선택하게 합니다.",
@@ -857,10 +868,11 @@ document.getElementById("feedbackExampleBtn").addEventListener("click", ()=>{
 
 // 규칙 기반 문단 조립 (데모/오프라인 대체용) — 선생님의 해석·가설(feedbackInterpretation)은
 // 여기서도 절대 사용하지 않습니다. 관찰과 해석을 분리하는 원칙은 코드 단에서 지킵니다.
-function buildFeedbackDraftLocal(student, session, start, action, quote, next, home){
+function buildFeedbackDraftLocal(student, session, start, action, learningPoint, quote, next, home){
   const paragraphs = [
     `안녕하세요. ${BRANDS[currentBrandId].name}입니다.${session ? ` 이번 ${session} 수업에서 ${student}의 모습을 전해드립니다.` : ` ${student}의 이번 수업 모습을 전해드립니다.`}`,
     [start ? `수업을 시작할 때는 ${start}` : "", `수업 중에는 ${action}`, quote ? `${student}는 “${quote.replace(/[“”]/g, "")}”라고 말하기도 했습니다.` : ""].filter(Boolean).join(" "),
+    learningPoint ? `최근 학습 현황으로는 ${learningPoint}.` : "",
     next ? `다음 시간에는 ${next}` : "",
     home ? `가정에서는 ${home}` : "",
     "다음 수업에서도 직접 시도한 과정과 변화를 살펴보고 전해드리겠습니다."
@@ -869,19 +881,19 @@ function buildFeedbackDraftLocal(student, session, start, action, quote, next, h
 }
 
 // 실제 Claude API(Netlify Function) 호출 — 배포 후에만 동작, 실패 시 규칙 기반으로 자동 대체
-async function generateFeedbackDraft(student, session, start, action, quote, next, home){
+async function generateFeedbackDraft(student, session, start, action, learningPoint, quote, next, home){
   try{
     const res = await fetch("/.netlify/functions/generate-feedback", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ brandName: BRANDS[currentBrandId].name, student, session, start, action, quote, next, home })
+      body: JSON.stringify({ brandName: BRANDS[currentBrandId].name, student, session, start, action, learningPoint, quote, next, home })
     });
     if(!res.ok) throw new Error("function not ok");
     const data = await res.json();
     if(!data.feedback) throw new Error("no feedback");
     return { text: data.feedback, source: "api" };
   }catch(e){
-    return { text: buildFeedbackDraftLocal(student, session, start, action, quote, next, home), source: "demo" };
+    return { text: buildFeedbackDraftLocal(student, session, start, action, learningPoint, quote, next, home), source: "demo" };
   }
 }
 
@@ -894,6 +906,7 @@ document.getElementById("feedbackGenerateBtn").addEventListener("click", async (
   }
   const session = feedbackValue("feedbackSession");
   const start = feedbackValue("feedbackStart");
+  const learningPoint = feedbackValue("feedbackLearningPoint");
   const quote = feedbackValue("feedbackQuote");
   const next = feedbackValue("feedbackNext");
   const home = feedbackValue("feedbackHome");
@@ -902,7 +915,7 @@ document.getElementById("feedbackGenerateBtn").addEventListener("click", async (
   btn.disabled = true; btn.textContent = "AI가 초안을 작성하고 있어요...";
   showToast("초안 생성 중...");
 
-  const { text, source } = await generateFeedbackDraft(student, session, start, action, quote, next, home);
+  const { text, source } = await generateFeedbackDraft(student, session, start, action, learningPoint, quote, next, home);
 
   btn.disabled = false; btn.textContent = "학부모용 초안 만들기";
   feedbackDraft = text;
