@@ -649,10 +649,16 @@ async function generateNarrative(studentName, values){
     if(!res.ok) throw new Error("function not ok");
     const data = await res.json();
     if(!data.narrative) throw new Error("no narrative");
-    return { text: escapeHtml(data.narrative).replace(/\n/g,"<br><br>"), source: "api" };
+    return { text: formatNarrativeHtml(data.narrative), source: "api" };
   }catch(e){
-    return { text: escapeHtml(buildNarrative(studentName, values)).replace(/\n/g,"<br>"), source: "demo" };
+    return { text: formatNarrativeHtml(buildNarrative(studentName, values)), source: "demo" };
   }
+}
+
+// 문단 사이 줄바꿈(\n\n 이상)은 <br><br>로, 문단 안 줄바꿈(\n 하나)은 <br> 하나로 —
+// 전에는 \n 하나마다 무조건 <br><br>로 바꿔서 문단 사이 간격이 두 배로 벌어지는 버그가 있었음.
+function formatNarrativeHtml(rawText){
+  return escapeHtml(rawText).replace(/\n{2,}/g, "<br><br>").replace(/\n/g, "<br>");
 }
 
 /* ---------------------------------------------------------
@@ -671,7 +677,7 @@ function renderHistory(){
   el.querySelectorAll(".history-item").forEach(elm=>{
     elm.addEventListener("click", ()=>{
       const item = list[elm.dataset.idx];
-      const text = item.narrative ? item.narrative : escapeHtml(buildNarrative(item.studentName, item.values)).replace(/\n/g,"<br>");
+      const text = item.narrative ? item.narrative : formatNarrativeHtml(buildNarrative(item.studentName, item.values));
       renderReport(item.studentName, item.values, item.date, text, item.source);
       switchTab("report");
       showToast("이력에서 리포트를 불러왔습니다");
