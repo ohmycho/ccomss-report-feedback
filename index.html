@@ -12,9 +12,11 @@
     b01: select 드롭다운 커스텀 화살표(appearance:none) 적용
     b02: 입력/버튼 폰트 14→16px, 패딩 확대 (Toss TDS 기준, iOS 자동확대 방지)
     b03: 위저드 이전/다음 버튼을 화면 하단 고정(sticky bottom bar)으로 변경
-    b04 (이 파일): 1단계에서 "이전" 버튼을 visibility:hidden → display:none으로 바꿔
+    b04: 1단계에서 "이전" 버튼을 visibility:hidden → display:none으로 바꿔
       "다음" 버튼이 오른쪽으로 치우쳐 보이던 문제 수정
-  현재 빌드: b04 · 2026-09-22
+    b05 (이 파일): 위저드 스텝 전환에 방향성 슬라이드+페이드 애니메이션 추가(다음=오른쪽에서, 이전=왼쪽에서),
+      버튼 클릭 시 눌리는 느낌(scale down) 추가
+  현재 빌드: b05 · 2026-09-22
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -116,8 +118,9 @@
   .btn{
     width:100%;padding:16px;border:none;border-radius:12px;font-size:16px;font-weight:700;
     background:var(--brand-accent);color:#fff;cursor:pointer;margin-top:6px;min-height:52px;
+    transition:transform .12s ease, opacity .12s ease;
   }
-  .btn:active{opacity:0.85;}
+  .btn:active{opacity:0.85;transform:scale(0.97);}
   .btn.secondary{background:#fff;border:1.5px solid var(--brand-primary);color:var(--brand-primary);}
   .btn.small{width:auto;padding:10px 16px;font-size:13.5px;font-weight:600;min-height:auto;}
 
@@ -178,6 +181,19 @@
   .wp-label{font-size:12px;color:var(--text-sub);font-weight:600;}
   .wizard-step{display:none;}
   .wizard-step.active{display:block;}
+  .wizard-step.enter-fwd{animation:stepInFwd .32s cubic-bezier(.22,1,.36,1);}
+  .wizard-step.enter-back{animation:stepInBack .32s cubic-bezier(.22,1,.36,1);}
+  @keyframes stepInFwd{
+    from{opacity:0;transform:translateX(24px);}
+    to{opacity:1;transform:translateX(0);}
+  }
+  @keyframes stepInBack{
+    from{opacity:0;transform:translateX(-24px);}
+    to{opacity:1;transform:translateX(0);}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .wizard-step.enter-fwd, .wizard-step.enter-back{animation:none;}
+  }
   #panel-input{padding-bottom:96px;}
   .wizard-nav{
     display:flex;gap:8px;
@@ -214,7 +230,7 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-title">두뇌로리포트 · 꼼즈 피드백 데모 <span style="opacity:0.55;font-weight:500;">v2.1</span> <span style="opacity:0.4;font-weight:500;font-size:10.5px;">· idx b04</span></div>
+    <div class="topbar-title">두뇌로리포트 · 꼼즈 피드백 데모 <span style="opacity:0.55;font-weight:500;">v2.1</span> <span style="opacity:0.4;font-weight:500;font-size:10.5px;">· idx b05</span></div>
     <div class="topbar-brand">
       <span class="brand-dot"></span>
       <span id="brandNameTop">꼼즈광교</span>
@@ -696,9 +712,17 @@ function renderReviewSummary(){
 }
 
 function goToStep(step){
+  const direction = step > wizardStep ? "fwd" : step < wizardStep ? "back" : null;
   wizardStep = step;
   document.querySelectorAll(".wizard-step").forEach(el=>{
-    el.classList.toggle("active", Number(el.dataset.step) === step);
+    const isActive = Number(el.dataset.step) === step;
+    el.classList.toggle("active", isActive);
+    el.classList.remove("enter-fwd", "enter-back");
+    if(isActive && direction){
+      // 강제 리플로우 후 클래스 추가 — 같은 클래스 재적용 시 애니메이션이 재생되도록
+      void el.offsetWidth;
+      el.classList.add(direction === "fwd" ? "enter-fwd" : "enter-back");
+    }
   });
   document.getElementById("stepDots").innerHTML = [1,2,3,4].map(n=>{
     let cls = "step-dot";
