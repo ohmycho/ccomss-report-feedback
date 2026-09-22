@@ -69,7 +69,7 @@ ${dataLines}
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5",
+        model: "claude-sonnet-5",
         max_tokens: 700,
         system: systemPrompt,
         messages: [{ role: "user", content: userPrompt }],
