@@ -47,7 +47,12 @@
       브랜드 id를 gwanggyo→demo로, 브랜드명을 "꼼즈광교"→"OO학원"(플레이스홀더)로 변경.
       상단 브랜드 버튼은 이제 "학습진단리포트·부모님피드백"이라는 고정 문구를 표시(브랜드명과 분리).
       BRANDS 설정에 있던 담당 원장 이름(director 필드) 삭제. 코드 주석에 남아있던 학원명도 제거.
-  현재 빌드: b13 · 2026-09-22
+    b14 (이 파일): 상단 영역 순서를 앱 이름(큰 글씨, 클릭 시 홈) → 한 줄 소개(작은 글씨) 순으로 재배치,
+      한 줄 소개 문구를 "학습리포트와 부모님피드백을 동시에"로 변경. 앱 이름은 정식 명칭이 정해지면
+      #brandNameTop 텍스트만 바꾸면 됨(로직 변경 불필요).
+    b15 (이 파일): 앱 이름 확정 — "피드톡"으로 상단 브랜드 영역/<title> 태그 변경.
+      한 줄 소개에 "AI" 명시: "학습리포트와 부모님피드백을 동시에" → "AI가 학습리포트와 부모님피드백을 동시에".
+  현재 빌드: b15 · 2026-09-22
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -55,7 +60,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>학습 리포트 · 부모님 피드백 데모</title>
+<title>피드톡 — 학습리포트·부모님피드백 데모</title>
 <link rel="stylesheet" as="style" crossorigin
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <script src="https://developers.kakao.com/sdk/js/kakao.min.js"></script>
@@ -274,11 +279,11 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-title">학습 리포트 · 부모님 피드백 데모 <span style="opacity:0.55;font-weight:500;">v2.1</span> <span style="opacity:0.4;font-weight:500;font-size:10.5px;">· idx b13</span></div>
     <button class="topbar-brand" id="homeBtn" type="button" aria-label="홈으로">
       <span class="brand-dot"></span>
-      <span id="brandNameTop">학습진단리포트·부모님피드백</span>
+      <span id="brandNameTop">피드톡</span>
     </button>
+    <div class="topbar-title">AI가 학습리포트와 부모님피드백을 동시에 <span style="opacity:0.55;font-weight:500;">v2.1</span> <span style="opacity:0.4;font-weight:500;font-size:10.5px;">· idx b15</span></div>
   </div>
 
   <div class="mode-picker" aria-label="도구 선택">
