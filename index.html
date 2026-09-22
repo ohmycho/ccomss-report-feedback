@@ -27,7 +27,12 @@
       생성 로직/데이터는 여전히 완전히 분리, 이미 만들어진 두 결과물(피드백 초안 + 같은 학생 이름의
       가장 최근 학습 리포트)을 화면/복사 단계에서만 이어붙임. 학생 이름이 양쪽에 동일하게 입력돼
       있어야 매칭됨 (localStorage 이력 기준, 현재는 브랜드별로만 구분되고 학생 고유 ID는 없음)
-  현재 빌드: b08 · 2026-09-22
+    b09: 리포트 문단 간격이 두 배로 벌어지던 버그 수정 — \n 하나마다 무조건 <br><br>로
+      바꾸던 걸, 문단 구분(\n\n 이상)만 <br><br>로/문단 내 줄바꿈은 <br> 하나로 바꾸게 수정
+    b10 (이 파일): 상단 브랜드 영역(꼼즈광교)을 누르면 홈(① 학습 리포트 · 진단 입력 1단계)으로
+      돌아가도록 버튼화. 우측 브랜드 드롭다운 스위처는 지금 꼼즈광교 단일 브랜드로만 데모하므로 제거
+      (BRANDS 객체·멀티브랜드 로직 자체는 남겨둠 — 나중에 브랜드 늘어나면 스위처 UI만 다시 추가하면 됨)
+  현재 빌드: b10 · 2026-09-22
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -65,10 +70,14 @@
     position:sticky;top:0;z-index:10;
   }
   .topbar-title{font-size:15px;font-weight:600;opacity:0.85;margin-bottom:4px;}
-  .topbar-brand{font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .topbar-brand{
+    font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px;
+    border:none;background:transparent;color:#fff;font-family:inherit;padding:2px 0;
+    cursor:pointer;transition:opacity .12s ease, transform .12s ease;
+  }
   .topbar-brand span:not(.brand-dot){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .topbar-brand select{flex-shrink:0;max-width:33%;}
-  .brand-dot{width:10px;height:10px;border-radius:50%;background:var(--brand-accent);}
+  .topbar-brand:active{opacity:0.7;transform:scale(0.98);}
+  .brand-dot{width:10px;height:10px;border-radius:50%;background:var(--brand-accent);flex-shrink:0;}
 
   .tabs{display:flex;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:76px;z-index:9;}
   .tab{flex:1;text-align:center;padding:13px 0;font-size:14px;font-weight:600;color:var(--text-sub);cursor:pointer;border-bottom:2px solid transparent;}
@@ -243,12 +252,11 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-title">학습 리포트 · 부모님 피드백 데모 <span style="opacity:0.55;font-weight:500;">v2.1</span> <span style="opacity:0.4;font-weight:500;font-size:10.5px;">· idx b08</span></div>
-    <div class="topbar-brand">
+    <div class="topbar-title">학습 리포트 · 부모님 피드백 데모 <span style="opacity:0.55;font-weight:500;">v2.1</span> <span style="opacity:0.4;font-weight:500;font-size:10.5px;">· idx b10</span></div>
+    <button class="topbar-brand" id="homeBtn" type="button" aria-label="홈으로">
       <span class="brand-dot"></span>
       <span id="brandNameTop">꼼즈광교</span>
-      <select id="brandSwitcher" style="margin-left:auto;background:rgba(255,255,255,0.12);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;"></select>
-    </div>
+    </button>
   </div>
 
   <div class="mode-picker" aria-label="도구 선택">
@@ -699,24 +707,15 @@ document.querySelectorAll(".tab").forEach(t=>{
 });
 
 /* ---------------------------------------------------------
-   브랜드 스위처
+   브랜드명 클릭 → 홈으로 (토스 방식: 상단 브랜드 영역이 홈 버튼 역할)
+   브랜드가 꼼즈광교 하나뿐인 지금은 드롭다운 스위처 없이, 브랜드명을 누르면
+   그냥 처음 화면(① 학습 리포트 모드 · 진단 입력 1단계)으로 돌아갑니다.
 --------------------------------------------------------- */
-const brandSwitcher = document.getElementById("brandSwitcher");
-Object.values(BRANDS).forEach(b=>{
-  const opt = document.createElement("option");
-  opt.value = b.id; opt.textContent = b.name;
-  brandSwitcher.appendChild(opt);
-});
-brandSwitcher.value = currentBrandId;
-brandSwitcher.addEventListener("change", ()=>{
-  currentBrandId = brandSwitcher.value;
-  localStorage.setItem("demo_currentBrand", currentBrandId);
-  applyTheme(currentBrandId);
-  renderAllInputFields();
-  document.getElementById("reportContent").innerHTML = `<div class="empty">아직 생성된 리포트가 없어요.<br>진단 입력 탭에서 리포트를 생성해보세요.</div>`;
-  renderHistory();
-  renderSetupNotice();
+document.getElementById("homeBtn").addEventListener("click", ()=>{
+  selectMode("report");
+  switchTab("input");
   goToStep(1);
+  window.scrollTo({ top: 0, behavior: "smooth" });
 });
 
 
