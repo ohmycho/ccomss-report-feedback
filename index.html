@@ -29,10 +29,17 @@
       있어야 매칭됨 (localStorage 이력 기준, 현재는 브랜드별로만 구분되고 학생 고유 ID는 없음)
     b09: 리포트 문단 간격이 두 배로 벌어지던 버그 수정 — \n 하나마다 무조건 <br><br>로
       바꾸던 걸, 문단 구분(\n\n 이상)만 <br><br>로/문단 내 줄바꿈은 <br> 하나로 바꾸게 수정
-    b10 (이 파일): 상단 브랜드 영역(꼼즈광교)을 누르면 홈(① 학습 리포트 · 진단 입력 1단계)으로
+    b10: 상단 브랜드 영역(꼼즈광교)을 누르면 홈(① 학습 리포트 · 진단 입력 1단계)으로
       돌아가도록 버튼화. 우측 브랜드 드롭다운 스위처는 지금 꼼즈광교 단일 브랜드로만 데모하므로 제거
       (BRANDS 객체·멀티브랜드 로직 자체는 남겨둠 — 나중에 브랜드 늘어나면 스위처 UI만 다시 추가하면 됨)
-  현재 빌드: b10 · 2026-09-22
+    b11 (이 파일): 카카오톡 공유하기 연동 — Kakao JS SDK(developers.kakao.com/sdk/js/kakao.min.js)
+      추가, Kakao.init(JS 키)로 초기화. shareTextViaKakao() 공용 함수: 기본 텍스트 템플릿(최대 200자)
+      범위 안이면 카카오톡 공유 시트를 바로 열고, 넘으면(리포트는 대부분 여기 해당) 자동으로
+      클립보드 복사로 대체 + 안내 토스트. 학습 리포트 결과 화면과 부모님 피드백 결과 화면 각각에
+      "카카오톡으로 공유하기" 버튼 추가(합쳐진 피드백을 공유할 때는 합쳐진 텍스트 기준).
+      JS 키는 카카오 개발자센터에서 발급받은 공개용 키로, 코드에 노출돼도 안전함
+      (플랫폼/도메인 등록은 카카오 개발자센터 콘솔에서 별도로 해야 실제 공유가 동작함).
+  현재 빌드: b11 · 2026-09-22
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -43,6 +50,7 @@
 <title>학습 리포트 · 부모님 피드백 데모</title>
 <link rel="stylesheet" as="style" crossorigin
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<script src="https://developers.kakao.com/sdk/js/kakao.min.js"></script>
 <style>
   :root{
     --brand-primary:#0D1B3E;
@@ -252,7 +260,7 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-title">학습 리포트 · 부모님 피드백 데모 <span style="opacity:0.55;font-weight:500;">v2.1</span> <span style="opacity:0.4;font-weight:500;font-size:10.5px;">· idx b10</span></div>
+    <div class="topbar-title">학습 리포트 · 부모님 피드백 데모 <span style="opacity:0.55;font-weight:500;">v2.1</span> <span style="opacity:0.4;font-weight:500;font-size:10.5px;">· idx b11</span></div>
     <button class="topbar-brand" id="homeBtn" type="button" aria-label="홈으로">
       <span class="brand-dot"></span>
       <span id="brandNameTop">꼼즈광교</span>
@@ -396,6 +404,7 @@
       </div>
       <div class="review-note">이 초안은 관찰 기록만으로 작성했습니다. 선생님의 해석·가설과 민감한 대화는 선생님이 검토한 뒤 필요한 범위에서 직접 반영하세요.</div>
       <button class="btn secondary" id="feedbackMergeBtn" type="button">최근 리포트와 합쳐서 보내기</button>
+      <button class="btn" id="kakaoShareFeedbackBtn" type="button" style="margin-top:8px;">카카오톡으로 공유하기</button>
       <button class="btn secondary" id="feedbackCopyBtn" type="button">초안 복사</button>
     </div>
   </div>
@@ -405,6 +414,42 @@
 <div class="toast" id="toast"></div>
 
 <script>
+/* ---------------------------------------------------------
+   카카오톡 공유 — Kakao Developers에서 발급받은 JavaScript 키 (공개용 키, 노출돼도 안전)
+   b11: 카카오 SDK 연결 + shareTextViaKakao() 공용 함수. 기본 텍스트 템플릿은 200자 제한이 있어서,
+   넘으면 자동으로 클립보드 복사로 대체(fallback)함 — 리포트(400~600자)는 대부분 이 경로를 탐.
+--------------------------------------------------------- */
+const KAKAO_JS_KEY = "c7ce77f9fdaea3cca7662384eb7a3c54";
+if(window.Kakao && !Kakao.isInitialized()){
+  Kakao.init(KAKAO_JS_KEY);
+}
+const KAKAO_TEXT_LIMIT = 200; // 카카오 기본 텍스트 템플릿 제한
+
+function shareTextViaKakao(text, buttonTitle){
+  const copyFallback = (reason)=>{
+    navigator.clipboard?.writeText(text).catch(()=>{});
+    showToast(reason);
+  };
+  if(!window.Kakao || !Kakao.isInitialized()){
+    copyFallback("카카오톡 공유를 불러오지 못해 대신 복사했어요 — 카카오톡에 붙여넣어 주세요");
+    return;
+  }
+  if(text.length > KAKAO_TEXT_LIMIT){
+    copyFallback(`내용이 ${KAKAO_TEXT_LIMIT}자를 넘어 카카오톡 공유 대신 복사했어요 — 카카오톡에 직접 붙여넣어 주세요`);
+    return;
+  }
+  try{
+    Kakao.Share.sendDefault({
+      objectType: "text",
+      text,
+      link: { mobileWebUrl: location.href, webUrl: location.href },
+      buttonTitle: buttonTitle || "자세히 보기",
+    });
+  }catch(e){
+    copyFallback("카카오톡 공유에 실패해 대신 복사했어요 — 카카오톡에 직접 붙여넣어 주세요");
+  }
+}
+
 /* ---------------------------------------------------------
    브랜드 / 필드 설정 — 실제 서비스에서는 Supabase academy_config 테이블
 --------------------------------------------------------- */
@@ -632,13 +677,17 @@ function renderReport(studentName, values, dateStr, narrativeText, sourceTag){
       <div class="narrative-label">AI 생성 리포트 <span class="ai-badge">${badgeLabel}</span></div>
       ${narrativeText}
     </div>
-    <button class="btn secondary" id="copyLinkBtn" style="margin-top:14px;">카톡 공유 링크 복사 (데모)</button>
+    <button class="btn" id="kakaoShareReportBtn" style="margin-top:14px;">카카오톡으로 공유하기</button>
+    <button class="btn secondary" id="copyLinkBtn" style="margin-top:8px;">텍스트 복사</button>
   `;
   document.getElementById("reportContent").innerHTML = html;
+  const reportPlainText = `[${b.name} 학습 리포트]\n${studentName} 학생 · ${dateStr}\n\n${htmlNarrativeToPlainText(narrativeText)}`;
+  document.getElementById("kakaoShareReportBtn").addEventListener("click", ()=>{
+    shareTextViaKakao(reportPlainText, "학습 리포트 보기");
+  });
   document.getElementById("copyLinkBtn").addEventListener("click", ()=>{
-    const fakeUrl = `https://report.${b.id}.example.com/${Date.now()}`;
-    navigator.clipboard?.writeText(fakeUrl).catch(()=>{});
-    showToast("리포트 링크가 복사되었습니다 (데모)");
+    navigator.clipboard?.writeText(reportPlainText).catch(()=>{});
+    showToast("리포트 내용이 복사되었습니다");
   });
 }
 
@@ -985,6 +1034,12 @@ document.getElementById("feedbackCopyBtn").addEventListener("click", async ()=>{
     await navigator.clipboard.writeText(textToCopy);
     showToast(feedbackMerged ? "리포트가 합쳐진 초안을 복사했습니다" : "초안을 복사했습니다");
   }catch(e){ showToast("복사할 수 없습니다. 초안을 선택해 복사해주세요"); }
+});
+
+document.getElementById("kakaoShareFeedbackBtn").addEventListener("click", ()=>{
+  const textToShare = feedbackMerged ? mergedDraftText : feedbackDraft;
+  if(!textToShare){ showToast("먼저 학부모용 초안을 만들어주세요"); return; }
+  shareTextViaKakao(textToShare, "피드백 자세히 보기");
 });
 
 /* ---------------------------------------------------------
