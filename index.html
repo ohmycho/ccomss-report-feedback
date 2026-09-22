@@ -29,8 +29,8 @@
       있어야 매칭됨 (localStorage 이력 기준, 현재는 브랜드별로만 구분되고 학생 고유 ID는 없음)
     b09: 리포트 문단 간격이 두 배로 벌어지던 버그 수정 — \n 하나마다 무조건 <br><br>로
       바꾸던 걸, 문단 구분(\n\n 이상)만 <br><br>로/문단 내 줄바꿈은 <br> 하나로 바꾸게 수정
-    b10: 상단 브랜드 영역(꼼즈광교)을 누르면 홈(① 학습 리포트 · 진단 입력 1단계)으로
-      돌아가도록 버튼화. 우측 브랜드 드롭다운 스위처는 지금 꼼즈광교 단일 브랜드로만 데모하므로 제거
+    b10: 상단 브랜드 영역을 누르면 홈(① 학습 리포트 · 진단 입력 1단계)으로
+      돌아가도록 버튼화. 우측 브랜드 드롭다운 스위처는 지금 단일 브랜드로만 데모하므로 제거
       (BRANDS 객체·멀티브랜드 로직 자체는 남겨둠 — 나중에 브랜드 늘어나면 스위처 UI만 다시 추가하면 됨)
     b11: 카카오톡 공유하기 연동 — Kakao JS SDK(developers.kakao.com/sdk/js/kakao.min.js)
       추가, Kakao.init(JS 키)로 초기화. shareTextViaKakao() 공용 함수: 기본 텍스트 템플릿(최대 200자)
@@ -43,7 +43,11 @@
       테스트용 예시 데이터이며, 불러온 뒤 "학부모용 초안 만들기"를 눌러 결과를 바로 확인해볼 수
       있다는 사용법 설명. 2) "카카오톡으로 공유하기" 버튼을 카카오 브랜드 가이드에 맞춰
       배경 #FEE500(카카오 옐로) · 텍스트 #191919로 스타일링 (.btn.kakao 클래스 추가).
-  현재 빌드: b12 · 2026-09-22
+    b13 (이 파일): 특정 학원명 노출 제거 — 다른 학원 원장님들께 범용 데모로 보여줄 수 있도록,
+      브랜드 id를 gwanggyo→demo로, 브랜드명을 "꼼즈광교"→"OO학원"(플레이스홀더)로 변경.
+      상단 브랜드 버튼은 이제 "학습진단리포트·부모님피드백"이라는 고정 문구를 표시(브랜드명과 분리).
+      BRANDS 설정에 있던 담당 원장 이름(director 필드) 삭제. 코드 주석에 남아있던 학원명도 제거.
+  현재 빌드: b13 · 2026-09-22
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -270,10 +274,10 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-title">학습 리포트 · 부모님 피드백 데모 <span style="opacity:0.55;font-weight:500;">v2.1</span> <span style="opacity:0.4;font-weight:500;font-size:10.5px;">· idx b12</span></div>
+    <div class="topbar-title">학습 리포트 · 부모님 피드백 데모 <span style="opacity:0.55;font-weight:500;">v2.1</span> <span style="opacity:0.4;font-weight:500;font-size:10.5px;">· idx b13</span></div>
     <button class="topbar-brand" id="homeBtn" type="button" aria-label="홈으로">
       <span class="brand-dot"></span>
-      <span id="brandNameTop">꼼즈광교</span>
+      <span id="brandNameTop">학습진단리포트·부모님피드백</span>
     </button>
   </div>
 
@@ -465,15 +469,14 @@ function shareTextViaKakao(text, buttonTitle){
    브랜드 / 필드 설정 — 실제 서비스에서는 Supabase academy_config 테이블
 --------------------------------------------------------- */
 const BRANDS = {
-  gwanggyo: {
-    id: "gwanggyo",
-    name: "꼼즈광교",
+  demo: {
+    id: "demo",
+    name: "OO학원",
     colors: { primary:"#0D1B3E", accent:"#FF6B2C", sub:"#4FB3E8" },
-    director: "이진 원장",
     enabledCore: ["unitScore","wrongType","attendance","teacherNote"],
     enabledOptional: ["diaryEmotion"]
   }
-  // 강동송파 두뇌로 등 다른 브랜드는 꼼즈광교 파일럿 검증 후 이 자리에 같은 형식으로 추가
+  // 다른 학원/브랜드를 붙일 때는 이 자리에 같은 형식으로 추가 (id, name, colors만 바꾸면 됨)
 };
 
 const CORE_FIELDS = [
@@ -501,7 +504,7 @@ function escapeHtml(value){
 /* ---------------------------------------------------------
    상태 (localStorage로 데모 영속화 — 실서비스는 Supabase)
 --------------------------------------------------------- */
-let currentBrandId = localStorage.getItem("demo_currentBrand") || "gwanggyo";
+let currentBrandId = localStorage.getItem("demo_currentBrand") || "demo";
 if(!BRANDS[currentBrandId]){
   // 예전 테스트에서 저장된 브랜드가 더 이상 존재하지 않을 때(예: 강동송파 제거) 첫 번째 브랜드로 안전하게 대체
   currentBrandId = Object.keys(BRANDS)[0];
@@ -536,7 +539,6 @@ function applyTheme(brandId){
   document.documentElement.style.setProperty("--brand-primary", b.colors.primary);
   document.documentElement.style.setProperty("--brand-accent", b.colors.accent);
   document.documentElement.style.setProperty("--brand-sub", b.colors.sub);
-  document.getElementById("brandNameTop").textContent = b.name;
 }
 
 /* ---------------------------------------------------------
@@ -768,7 +770,7 @@ document.querySelectorAll(".tab").forEach(t=>{
 
 /* ---------------------------------------------------------
    브랜드명 클릭 → 홈으로 (토스 방식: 상단 브랜드 영역이 홈 버튼 역할)
-   브랜드가 꼼즈광교 하나뿐인 지금은 드롭다운 스위처 없이, 브랜드명을 누르면
+   브랜드가 하나뿐인 데모에서는 드롭다운 스위처 없이, 브랜드명을 누르면
    그냥 처음 화면(① 학습 리포트 모드 · 진단 입력 1단계)으로 돌아갑니다.
 --------------------------------------------------------- */
 document.getElementById("homeBtn").addEventListener("click", ()=>{
@@ -910,7 +912,7 @@ document.getElementById("dismissNoticeBtn").addEventListener("click", ()=>{
 });
 
 /* ---------------------------------------------------------
-   꼼즈광교의 두 가지 독립된 도구
+   학습 리포트 / 부모님 피드백 — 두 가지 독립된 도구
 --------------------------------------------------------- */
 function selectMode(mode){
   const feedback = mode === "feedback";
