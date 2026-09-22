@@ -32,14 +32,18 @@
     b10: 상단 브랜드 영역(꼼즈광교)을 누르면 홈(① 학습 리포트 · 진단 입력 1단계)으로
       돌아가도록 버튼화. 우측 브랜드 드롭다운 스위처는 지금 꼼즈광교 단일 브랜드로만 데모하므로 제거
       (BRANDS 객체·멀티브랜드 로직 자체는 남겨둠 — 나중에 브랜드 늘어나면 스위처 UI만 다시 추가하면 됨)
-    b11 (이 파일): 카카오톡 공유하기 연동 — Kakao JS SDK(developers.kakao.com/sdk/js/kakao.min.js)
+    b11: 카카오톡 공유하기 연동 — Kakao JS SDK(developers.kakao.com/sdk/js/kakao.min.js)
       추가, Kakao.init(JS 키)로 초기화. shareTextViaKakao() 공용 함수: 기본 텍스트 템플릿(최대 200자)
       범위 안이면 카카오톡 공유 시트를 바로 열고, 넘으면(리포트는 대부분 여기 해당) 자동으로
       클립보드 복사로 대체 + 안내 토스트. 학습 리포트 결과 화면과 부모님 피드백 결과 화면 각각에
       "카카오톡으로 공유하기" 버튼 추가(합쳐진 피드백을 공유할 때는 합쳐진 텍스트 기준).
       JS 키는 카카오 개발자센터에서 발급받은 공개용 키로, 코드에 노출돼도 안전함
       (플랫폼/도메인 등록은 카카오 개발자센터 콘솔에서 별도로 해야 실제 공유가 동작함).
-  현재 빌드: b11 · 2026-09-22
+    b12 (이 파일): 1) 부모님 피드백 "가상 사례 불러오기" 버튼 아래에 안내 문구(hint) 추가 —
+      테스트용 예시 데이터이며, 불러온 뒤 "학부모용 초안 만들기"를 눌러 결과를 바로 확인해볼 수
+      있다는 사용법 설명. 2) "카카오톡으로 공유하기" 버튼을 카카오 브랜드 가이드에 맞춰
+      배경 #FEE500(카카오 옐로) · 텍스트 #191919로 스타일링 (.btn.kakao 클래스 추가).
+  현재 빌드: b12 · 2026-09-22
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -151,6 +155,12 @@
   .btn:active{opacity:0.85;transform:scale(0.97);}
   .btn.secondary{background:#fff;border:1.5px solid var(--brand-primary);color:var(--brand-primary);}
   .btn.small{width:auto;padding:10px 16px;font-size:13.5px;font-weight:600;min-height:auto;}
+  /* 카카오 브랜드 가이드: 배경 #FEE500(카카오 옐로), 텍스트/아이콘 #191919 */
+  .btn.kakao{
+    background:#FEE500;color:#191919;
+    display:flex;align-items:center;justify-content:center;gap:6px;
+  }
+  .btn.kakao svg{flex-shrink:0;}
 
   .hint{font-size:13px;color:var(--text-sub);line-height:1.5;margin-top:6px;}
 
@@ -260,7 +270,7 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-title">학습 리포트 · 부모님 피드백 데모 <span style="opacity:0.55;font-weight:500;">v2.1</span> <span style="opacity:0.4;font-weight:500;font-size:10.5px;">· idx b11</span></div>
+    <div class="topbar-title">학습 리포트 · 부모님 피드백 데모 <span style="opacity:0.55;font-weight:500;">v2.1</span> <span style="opacity:0.4;font-weight:500;font-size:10.5px;">· idx b12</span></div>
     <button class="topbar-brand" id="homeBtn" type="button" aria-label="홈으로">
       <span class="brand-dot"></span>
       <span id="brandNameTop">꼼즈광교</span>
@@ -393,6 +403,7 @@
       <label class="field-label" for="feedbackHome">가정에 전할 실천 제안 (선택)</label>
       <textarea id="feedbackHome" placeholder="예: 정답보다 스스로 시도한 과정을 구체적으로 칭찬해 주세요"></textarea>
       <button class="btn secondary" id="feedbackExampleBtn" type="button">가상 사례 불러오기</button>
+      <div class="hint">테스트용 예시 데이터예요. 눌러서 입력칸을 채운 뒤 "학부모용 초안 만들기"를 눌러보면 실제로 어떤 결과가 나오는지 바로 확인할 수 있어요.</div>
       <button class="btn" id="feedbackGenerateBtn" type="button">학부모용 초안 만들기</button>
     </div>
     <div class="card feedback-result" id="feedbackResult">
@@ -404,7 +415,7 @@
       </div>
       <div class="review-note">이 초안은 관찰 기록만으로 작성했습니다. 선생님의 해석·가설과 민감한 대화는 선생님이 검토한 뒤 필요한 범위에서 직접 반영하세요.</div>
       <button class="btn secondary" id="feedbackMergeBtn" type="button">최근 리포트와 합쳐서 보내기</button>
-      <button class="btn" id="kakaoShareFeedbackBtn" type="button" style="margin-top:8px;">카카오톡으로 공유하기</button>
+      <button class="btn kakao" id="kakaoShareFeedbackBtn" type="button" style="margin-top:8px;">카카오톡으로 공유하기</button>
       <button class="btn secondary" id="feedbackCopyBtn" type="button">초안 복사</button>
     </div>
   </div>
@@ -677,7 +688,7 @@ function renderReport(studentName, values, dateStr, narrativeText, sourceTag){
       <div class="narrative-label">AI 생성 리포트 <span class="ai-badge">${badgeLabel}</span></div>
       ${narrativeText}
     </div>
-    <button class="btn" id="kakaoShareReportBtn" style="margin-top:14px;">카카오톡으로 공유하기</button>
+    <button class="btn kakao" id="kakaoShareReportBtn" style="margin-top:14px;">카카오톡으로 공유하기</button>
     <button class="btn secondary" id="copyLinkBtn" style="margin-top:8px;">텍스트 복사</button>
   `;
   document.getElementById("reportContent").innerHTML = html;
