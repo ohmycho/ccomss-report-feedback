@@ -1,10 +1,21 @@
 <!--
-  진단·리포트 API 목업 — v2.0
+  진단·리포트 API 목업 — 기능 버전 v2.0
   v1.0 (archive/diagnosis-report-api-mockup-v1.html): 두뇌로리포트(진단 입력 4단계 위저드) 단일 도구
   v2.0: 두뇌로리포트 + 꼼즈 피드백(수업 관찰 → 학부모 피드백 초안) 2개 도구를 모드 선택으로 분리, escapeHtml 적용
-  v2.1 (이 파일): 꼼즈 피드백에 Claude API(Netlify Function: functions/generate-feedback.js) 연동 —
+  v2.1: 꼼즈 피드백에 Claude API(Netlify Function: functions/generate-feedback.js) 연동 —
     배포 안 됐거나 호출 실패 시 자동으로 규칙 기반 문안으로 대체(fallback). 선생님의 해석·가설(feedbackInterpretation)은
     프론트/함수 어디에서도 전송하지 않아 학부모용 초안에 절대 섞이지 않음.
+
+  ----------------------------------------------------------------------------
+  인덱스 빌드(index.html 배포본) 버전 — 기능 버전과 별도로, 디자인/배포 수정할 때마다 올림.
+  화면 우상단 브랜드바에 "idx bNN"으로도 표시됨 (재배포 후 실제 반영됐는지 눈으로 바로 확인용).
+    b01: select 드롭다운 커스텀 화살표(appearance:none) 적용
+    b02: 입력/버튼 폰트 14→16px, 패딩 확대 (Toss TDS 기준, iOS 자동확대 방지)
+    b03: 위저드 이전/다음 버튼을 화면 하단 고정(sticky bottom bar)으로 변경
+    b04 (이 파일): 1단계에서 "이전" 버튼을 visibility:hidden → display:none으로 바꿔
+      "다음" 버튼이 오른쪽으로 치우쳐 보이던 문제 수정
+  현재 빌드: b04 · 2026-09-22
+  ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
 <html lang="ko">
@@ -203,7 +214,7 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-title">두뇌로리포트 · 꼼즈 피드백 데모 <span style="opacity:0.55;font-weight:500;">v2.1</span></div>
+    <div class="topbar-title">두뇌로리포트 · 꼼즈 피드백 데모 <span style="opacity:0.55;font-weight:500;">v2.1</span> <span style="opacity:0.4;font-weight:500;font-size:10.5px;">· idx b04</span></div>
     <div class="topbar-brand">
       <span class="brand-dot"></span>
       <span id="brandNameTop">꼼즈광교</span>
@@ -696,7 +707,7 @@ function goToStep(step){
     return `<div class="${cls}"></div>`;
   }).join("");
   document.getElementById("wizardLabel").textContent = `${step} / 4 · ${WIZARD_LABELS[step]}`;
-  document.getElementById("wizardBackBtn").style.visibility = step === 1 ? "hidden" : "visible";
+  document.getElementById("wizardBackBtn").style.display = step === 1 ? "none" : "";
   document.getElementById("wizardNextBtn").style.display = step === 4 ? "none" : "block";
   document.getElementById("generateBtn").style.display = step === 4 ? "block" : "none";
   if(step === 4) renderReviewSummary();
