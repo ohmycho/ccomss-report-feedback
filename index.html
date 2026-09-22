@@ -23,7 +23,11 @@
       수업 관찰 피드백에 학습 지표(오답률 개선 등)를 같이 언급하는 경우가 많아, 두 도구의
       입력/생성 로직은 분리하되 피드백 문안에 학습 포인트를 자연스럽게 엮을 수 있도록 함.
       generate-feedback.js도 같이 업데이트 필요 (functions 폴더 파일도 재배포할 것)
-  현재 빌드: b07 · 2026-09-22
+    b08 (이 파일): 부모님 피드백 결과 화면에 "최근 리포트와 합쳐서 보내기" 버튼 추가 —
+      생성 로직/데이터는 여전히 완전히 분리, 이미 만들어진 두 결과물(피드백 초안 + 같은 학생 이름의
+      가장 최근 학습 리포트)을 화면/복사 단계에서만 이어붙임. 학생 이름이 양쪽에 동일하게 입력돼
+      있어야 매칭됨 (localStorage 이력 기준, 현재는 브랜드별로만 구분되고 학생 고유 ID는 없음)
+  현재 빌드: b08 · 2026-09-22
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -230,6 +234,8 @@
   .feedback-result.visible{display:block;}
   .feedback-text{white-space:pre-wrap;line-height:1.75;font-size:15px;}
   .review-note{font-size:13px;line-height:1.6;color:#805c25;background:#fff7e7;border-radius:9px;padding:10px 12px;margin-top:14px;}
+  .merge-section{margin-top:14px;padding-top:14px;border-top:1.5px dashed var(--border);}
+  .merge-divider{font-size:12px;font-weight:700;color:var(--brand-sub);margin-bottom:8px;}
   .field-help{font-size:13px;color:var(--text-sub);line-height:1.5;margin:-2px 0 10px;}
 </style>
 </head>
@@ -237,7 +243,7 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-title">학습 리포트 · 부모님 피드백 데모 <span style="opacity:0.55;font-weight:500;">v2.1</span> <span style="opacity:0.4;font-weight:500;font-size:10.5px;">· idx b07</span></div>
+    <div class="topbar-title">학습 리포트 · 부모님 피드백 데모 <span style="opacity:0.55;font-weight:500;">v2.1</span> <span style="opacity:0.4;font-weight:500;font-size:10.5px;">· idx b08</span></div>
     <div class="topbar-brand">
       <span class="brand-dot"></span>
       <span id="brandNameTop">꼼즈광교</span>
@@ -376,7 +382,12 @@
     <div class="card feedback-result" id="feedbackResult">
       <div class="card-title">학부모용 피드백 초안 <span class="ai-badge" id="feedbackBadge">AI (데모 문안)</span></div>
       <div class="feedback-text" id="feedbackText"></div>
+      <div class="merge-section" id="mergeSection" style="display:none;">
+        <div class="merge-divider">＋ 최근 학습 리포트 (<span id="mergeReportDate"></span>)</div>
+        <div class="feedback-text" id="mergedReportText"></div>
+      </div>
       <div class="review-note">이 초안은 관찰 기록만으로 작성했습니다. 선생님의 해석·가설과 민감한 대화는 선생님이 검토한 뒤 필요한 범위에서 직접 반영하세요.</div>
+      <button class="btn secondary" id="feedbackMergeBtn" type="button">최근 리포트와 합쳐서 보내기</button>
       <button class="btn secondary" id="feedbackCopyBtn" type="button">초안 복사</button>
     </div>
   </div>
@@ -919,6 +930,9 @@ document.getElementById("feedbackGenerateBtn").addEventListener("click", async (
 
   btn.disabled = false; btn.textContent = "학부모용 초안 만들기";
   feedbackDraft = text;
+  feedbackMerged = false;
+  document.getElementById("mergeSection").style.display = "none";
+  document.getElementById("feedbackMergeBtn").textContent = "최근 리포트와 합쳐서 보내기";
   document.getElementById("feedbackText").textContent = feedbackDraft;
   document.getElementById("feedbackBadge").textContent = source === "api" ? "AI (Claude 실연동)" : "AI (데모 문안)";
   const result = document.getElementById("feedbackResult");
@@ -927,11 +941,44 @@ document.getElementById("feedbackGenerateBtn").addEventListener("click", async (
   showToast(source === "api" ? "Claude API로 초안이 만들어졌습니다" : "피드백 초안이 만들어졌습니다 (데모 문안 — 배포 시 Claude API로 자동 전환)");
 });
 
+// HTML로 저장된 리포트 문안(escapeHtml + <br>)을 카톡에 붙여넣을 평문으로 되돌립니다.
+function htmlNarrativeToPlainText(html){
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+}
+
+let feedbackMerged = false;
+let mergedDraftText = "";
+
+document.getElementById("feedbackMergeBtn").addEventListener("click", ()=>{
+  const studentName = feedbackValue("feedbackStudent");
+  if(!studentName){ showToast("학생 표시 이름을 먼저 입력해주세요"); return; }
+  const history = getHistory(currentBrandId);
+  // 피드백에 적은 학생 표시 이름과 정확히 일치하는 것 중 가장 최근 리포트를 찾습니다 (이력은 최신순 정렬).
+  const match = history.find(item => item.studentName.trim() === studentName);
+  if(!match){
+    showToast(`"${studentName}" 이름으로 저장된 학습 리포트를 찾지 못했어요`);
+    return;
+  }
+  const plainNarrative = htmlNarrativeToPlainText(match.narrative || "");
+  mergedDraftText = `${feedbackDraft}\n\n— — —\n[최근 학습 리포트 · ${match.date}]\n${plainNarrative}`;
+  feedbackMerged = true;
+
+  document.getElementById("mergeReportDate").textContent = match.date;
+  document.getElementById("mergedReportText").textContent = plainNarrative;
+  document.getElementById("mergeSection").style.display = "block";
+  document.getElementById("feedbackMergeBtn").textContent = "합쳐짐 ✓ (다시 누르면 갱신)";
+  showToast("최근 리포트를 합쳤습니다 — 초안 복사 시 함께 복사됩니다");
+});
+
 document.getElementById("feedbackCopyBtn").addEventListener("click", async ()=>{
-  if(!feedbackDraft) return;
+  const textToCopy = feedbackMerged ? mergedDraftText : feedbackDraft;
+  if(!textToCopy) return;
   try{
-    await navigator.clipboard.writeText(feedbackDraft);
-    showToast("초안을 복사했습니다");
+    await navigator.clipboard.writeText(textToCopy);
+    showToast(feedbackMerged ? "리포트가 합쳐진 초안을 복사했습니다" : "초안을 복사했습니다");
   }catch(e){ showToast("복사할 수 없습니다. 초안을 선택해 복사해주세요"); }
 });
 
