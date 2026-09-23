@@ -117,7 +117,11 @@
       "복사되었습니다. 카톡에 붙여넣기 하세요"로 더 짧고 바로 이해되게 바꾸고, showToast()에 표시
       시간(duration)을 선택적으로 받을 수 있게 해서 이 안내는 기존 1.8초 대신 3.5초 동안 떠 있게 함
       (다른 토스트들은 기존과 동일하게 1.8초 유지).
-  현재 빌드: b23 · 2026-09-23
+    b24 (이 파일): "클릭해서 직접 수정 가능" 안내를 결과 상단으로 옮기고 눈에 띄는 배지(.edit-hint,
+      오렌지 톤 배경+굵은 글씨)로 강조 — 리포트는 AI 리포트 라벨 바로 아래·수정 영역 바로 위로,
+      피드백은 카드 제목 바로 아래로 이동. 결과가 뜨자마자 바로 보이는 위치라 이 기능을 놓치지 않게 함.
+      (기존에는 결과 텍스트 아래쪽에 작은 회색 글씨로만 있어서 눈에 잘 안 띄었음)
+  현재 빌드: b24 · 2026-09-23
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -249,6 +253,14 @@
   .btn.kakao svg{flex-shrink:0;}
 
   .hint{font-size:13px;color:var(--text-sub);line-height:1.5;margin-top:6px;}
+  /* b24: 결과가 나오자마자 바로 보이도록, "직접 수정 가능" 안내를 눈에 띄는 배지 형태로 강조 */
+  .edit-hint{
+    display:flex;align-items:flex-start;gap:8px;
+    background:#FFF1E8;border:1px solid #FFD3B0;color:#B34E00;
+    border-radius:10px;padding:10px 12px;margin-bottom:10px;
+    font-size:13px;font-weight:700;line-height:1.5;
+  }
+  .edit-hint .eh-icon{font-size:16px;flex-shrink:0;line-height:1.4;}
   /* b18: 실패 안내 + 재시도, 입력 변경으로 인한 재생성 필요 안내 */
   .gen-error{
     font-size:13px;line-height:1.6;color:#B3261E;background:#FDECEA;border:1px solid #F5C2BE;
@@ -373,7 +385,7 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-version">v2.1 · idx b23</div>
+    <div class="topbar-version">v2.1 · idx b24</div>
     <button class="topbar-brand" id="homeBtn" type="button" aria-label="홈으로">
       <span class="brand-mark" aria-hidden="true"></span>
       <span id="brandNameTop">피드톡</span>
@@ -514,6 +526,7 @@
     </div>
     <div class="card feedback-result" id="feedbackResult">
       <div class="card-title">학부모용 피드백 초안 <span class="ai-badge" id="feedbackBadge">AI (데모 문안)</span></div>
+      <div class="edit-hint"><span class="eh-icon">✏️</span><span>클릭해서 내용을 직접 수정할 수 있어요! 수정한 내용 그대로 복사·공유돼요.</span></div>
       <div class="stale-warning" id="feedbackStaleWarning" style="display:none;">
         입력 내용이 바뀌었어요 — 아래 버튼은 "학부모용 초안 만들기"로 다시 생성해야 눌러져요. (서로 다른 학생 정보가 섞이는 걸 막기 위해서예요)
       </div>
@@ -522,7 +535,6 @@
         <div class="merge-divider">＋ 최근 학습 리포트 (<span id="mergeReportDate"></span>)</div>
         <div class="feedback-text" id="mergedReportText" contenteditable="true"></div>
       </div>
-      <div class="hint">✏️ 클릭해서 내용을 직접 수정한 뒤 복사·공유할 수 있어요. 수정한 내용이 그대로 전달됩니다.</div>
       <div class="review-note">이 초안은 관찰 기록만으로 작성했습니다. 선생님의 해석·가설과 민감한 대화는 선생님이 검토한 뒤 필요한 범위에서 직접 반영하세요.</div>
       <button class="btn secondary" id="feedbackMergeBtn" type="button">최근 리포트와 합쳐서 보내기</button>
       <button class="btn kakao" id="kakaoShareFeedbackBtn" type="button" style="margin-top:8px;">카카오톡으로 공유하기</button>
@@ -866,9 +878,9 @@ function renderReport(studentName, values, dateStr, narrativeText, sourceTag){
     </div>
     <div class="narrative">
       <div class="narrative-label">AI 생성 리포트 <span class="ai-badge">${badgeLabel}</span></div>
+      <div class="edit-hint"><span class="eh-icon">✏️</span><span>클릭해서 내용을 직접 수정할 수 있어요! 수정한 내용 그대로 복사·공유돼요.</span></div>
       <div class="narrative-editable" id="reportNarrativeText" contenteditable="true">${narrativeText}</div>
     </div>
-    <div class="hint">✏️ 클릭해서 내용을 직접 수정한 뒤 복사·공유할 수 있어요. 수정한 내용이 그대로 전달됩니다.</div>
     <button class="btn kakao" id="kakaoShareReportBtn" style="margin-top:8px;">카카오톡으로 공유하기</button>
     <div class="hint">200자가 넘을 경우 자동 복사되니 바로 카톡에 붙여넣기 하면 됩니다.</div>
     <button class="btn secondary" id="copyLinkBtn" style="margin-top:8px;">텍스트 복사</button>
