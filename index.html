@@ -59,7 +59,42 @@
     b17 (이 파일): 로고 컨셉 2(말풍선 아이콘 + 워드마크) 선택 반영 — 상단 브랜드 영역에
       .brand-mark(CSS 도형으로 만든 임시 말풍선 아이콘) 추가. 지금은 코드로 그린 임시 도형이며,
       나중에 정식 SVG/이미지 로고로 교체할 예정(그때 .brand-mark 자리만 바꾸면 됨).
-  현재 빌드: b17 · 2026-09-22
+    b18 (이 파일 + functions/generate-report.js + functions/generate-feedback.js): 코드 리뷰 기반
+      로직/보안 수정 7건.
+      1) 학생별 결과 혼합 방지 — 피드백 초안을 생성한 시점의 입력값을 feedbackDraftMeta로 스냅샷
+         저장하고, 이후 입력(이름 포함)이 하나라도 바뀌면 재생성 전까지 합치기/복사/카카오공유 버튼을
+         막고 경고 문구(#feedbackStaleWarning)를 표시. "최근 리포트와 합치기"는 이름이 같은 이력이
+         여러 건이면(동명이인 가능성) 가장 최근 것을 쓰되 날짜를 반드시 보여주고 토스트로 안내.
+      2) Claude 응답 처리 — 서버에서 content 배열의 type:"text" 블록을 모두 골라 이어붙이도록 수정
+         (기존 content[0].text만 읽던 버그). 재시도 후에도 잘린 응답(stop_reason:"max_tokens"),
+         빈 응답, refusal을 정상 완료로 취급하지 않고 에러로 처리. Sonnet 5 공식 문서 기준으로
+         effort(기본값 high)는 출력을 자르지 않으며 max_tokens 1200/700은 이 용도(400~600자)에
+         적절함을 확인 — 토큰 값은 변경하지 않음.
+      3) 오류 표시 — 함수가 아예 연결되지 않는 경우(404/네트워크 오류=미배포)만 데모로 조용히 대체하고,
+         함수가 응답했지만 실패한 경우는 #reportGenError/#feedbackGenError에 실패 안내를 띄우고
+         버튼을 다시 눌러 재시도할 수 있게 함(자동으로 데모 문안으로 숨기지 않음). 서버는 상태코드·
+         오류 원인 분류(stop_reason 등)·토큰 사용량만 콘솔에 로그하고, 학생 이름/입력값/API 키는
+         절대 로그에 남기지 않음.
+      4) 근거 없는 해석 방지 — 두 함수의 system prompt와 프론트 데모 문안(buildNarrative) 모두에
+         "관찰(집중도 등)만으로 더 큰 결론(개념 이해도)으로 비약 금지", "감정 태그로 내면 심리 단정
+         금지", "입력되지 않은 구체적 지도 계획을 확정적으로 약속 금지" 원칙을 명시. 생성 결과는
+         #reportNarrativeText/#feedbackText/#mergedReportText를 contenteditable로 만들어 선생님이
+         복사·공유 전에 직접 수정 가능.
+      5) 서버 입력 검증/호출 보호 — 두 함수 모두 허용된 필드만 읽고, 자료형·점수범위(0~100)·선택지
+         (enum)·글자수 상한을 서버에서 검증(FIELD_RULES/FIELD_LIMITS). 기존에는 인증/호출 제한이
+         전혀 없었음 — 이번에 (a) 선택적 APP_SHARED_SECRET 헤더 검사(설정 안 하면 기존처럼 동작,
+         진짜 인증 아님) (b) IP 기준 인메모리 분당 호출 제한(콜드스타트/다중 인스턴스에서는 부정확,
+         공개 운영 전 Netlify 공식 Rate Limiting 등으로 교체 권장)을 추가. 로그인·결제 시스템은
+         이번 작업 범위에 포함하지 않음 — 공개 운영 전 별도 작업으로 필요.
+      6) 사용 중 오류 — 복사는 navigator.clipboard.writeText가 실제로 성공했을 때만 성공 토스트를
+         표시(실패 시 실패 안내). localStorage 읽기/쓰기 전체에 safeGetItem/safeSetItem 안전판 적용
+         (private 모드/저장공간 초과 시에도 안내와 함께 정상 동작). Config 탭에서 선택 항목 토글을
+         바꿔도 Input 탭에 이미 입력한 값이 사라지지 않도록 renderFieldGroup에 preserveValues 옵션
+         추가. "상위 N%"/"N%ile" 표시를 "상위 N%"로 통일. 이력 패널에 "최근 20건까지만, 이 브라우저
+         에만 저장됨" 안내 문구 추가.
+      7) 원본 파일 확인 — 실제 파일에 마크다운 링크 변환이나 밑줄/백틱 앞 역슬래시 오염이 있는지
+         grep으로 확인한 결과, 오염 없음(수정 불필요).
+  현재 빌드: b18 · 2026-09-23
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -176,6 +211,7 @@
     transition:transform .12s ease, opacity .12s ease;
   }
   .btn:active{opacity:0.85;transform:scale(0.97);}
+  .btn:disabled{opacity:0.45;cursor:not-allowed;transform:none;}
   .btn.secondary{background:#fff;border:1.5px solid var(--brand-primary);color:var(--brand-primary);}
   .btn.small{width:auto;padding:10px 16px;font-size:13.5px;font-weight:600;min-height:auto;}
   /* 카카오 브랜드 가이드: 배경 #FEE500(카카오 옐로), 텍스트/아이콘 #191919 */
@@ -186,6 +222,15 @@
   .btn.kakao svg{flex-shrink:0;}
 
   .hint{font-size:13px;color:var(--text-sub);line-height:1.5;margin-top:6px;}
+  /* b18: 실패 안내 + 재시도, 입력 변경으로 인한 재생성 필요 안내 */
+  .gen-error{
+    font-size:13px;line-height:1.6;color:#B3261E;background:#FDECEA;border:1px solid #F5C2BE;
+    border-radius:10px;padding:10px 12px;margin-top:10px;
+  }
+  .stale-warning{
+    font-size:12.5px;line-height:1.6;color:#9A5B12;background:#FFF7ED;border:1px solid #FFDCB8;
+    border-radius:10px;padding:10px 12px;margin-bottom:12px;
+  }
 
   /* Report */
   .report-card{
@@ -202,6 +247,14 @@
 
   .narrative{background:#fff;border-radius:16px;padding:18px;line-height:1.75;font-size:15px;white-space:pre-wrap;}
   .narrative-label{font-size:12px;font-weight:700;color:var(--brand-sub);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+  /* b18: AI 생성 결과를 선생님이 직접 수정할 수 있도록 contenteditable 영역 스타일 */
+  .narrative-editable, .feedback-text{
+    outline:none;border-radius:10px;margin:-6px;padding:6px;
+    transition:background .15s ease, box-shadow .15s ease;
+  }
+  .narrative-editable:focus, .feedback-text:focus{
+    background:#FFFBF3;box-shadow:0 0 0 2px rgba(255,107,44,.25);
+  }
   .ai-badge{background:var(--brand-sub);color:#fff;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:700;}
 
   .history-item{background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;border:1px solid var(--border);cursor:pointer;}
@@ -293,7 +346,7 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-version">v2.1 · idx b17</div>
+    <div class="topbar-version">v2.1 · idx b18</div>
     <button class="topbar-brand" id="homeBtn" type="button" aria-label="홈으로">
       <span class="brand-mark" aria-hidden="true"></span>
       <span id="brandNameTop">피드톡</span>
@@ -326,7 +379,7 @@
       <div class="card">
         <div class="card-title">학생 정보</div>
         <label class="field-label">학생 이름</label>
-        <input type="text" id="studentName" placeholder="예: 김민준">
+        <input type="text" id="studentName" placeholder="예: 김민준" maxlength="40">
         <label class="field-label">학부모 연락처 (선택)</label>
         <input type="tel" inputmode="numeric" id="parentContact" placeholder="010-1234-5678" maxlength="13">
       </div>
@@ -365,7 +418,8 @@
         <div class="card-title">입력 내용 확인</div>
         <div id="reviewSummary"></div>
       </div>
-      <div class="hint">데모에서는 규칙 기반으로 리포트 문안을 생성합니다. 실제 서비스에서는 이 자리에서 Netlify Function을 통해 Claude API(claude-haiku)를 호출해 생성합니다.</div>
+      <div class="hint">배포된 서버(Netlify Function)가 연결되면 Claude API로 리포트를 생성합니다. 서버에 연결할 수 없는 경우(예: 로컬에서 파일을 직접 열었을 때)에만 확인용 데모 문안으로 대체됩니다.</div>
+      <div class="gen-error" id="reportGenError" style="display:none;"></div>
     </div>
 
     <div class="wizard-nav">
@@ -400,6 +454,7 @@
 
   <!-- HISTORY PANEL -->
   <div class="panel" id="panel-history">
+    <div class="hint" style="margin:0 0 14px;">이 이력은 <b>이 브라우저(기기)에만</b> 최근 20건까지 저장돼요. 브라우저 데이터를 지우거나 다른 기기·브라우저로 접속하면 보이지 않아요.</div>
     <div id="historyList"><div class="empty">저장된 리포트 이력이 없어요.</div></div>
   </div>
 
@@ -408,35 +463,40 @@
       <div class="card-title">부모님 피드백 입력 <small>입력은 학습 리포트와 별도</small></div>
       <p class="field-help">실제로 본 행동과 들은 말을 먼저 적고, 선생님의 해석은 구분해 적습니다.</p>
       <label class="field-label" for="feedbackStudent">학생 표시 이름</label>
-      <input id="feedbackStudent" type="text" placeholder="예: 학생 A (가명)">
+      <input id="feedbackStudent" type="text" placeholder="예: 학생 A (가명)" maxlength="40">
       <label class="field-label" for="feedbackSession">수업 회차·주제</label>
-      <input id="feedbackSession" type="text" placeholder="예: 7회차 · 소수의 덧셈과 뺄셈">
+      <input id="feedbackSession" type="text" placeholder="예: 7회차 · 소수의 덧셈과 뺄셈" maxlength="60">
       <label class="field-label" for="feedbackStart">처음 보인 반응</label>
-      <textarea id="feedbackStart" placeholder="예: 시작 전 어렵다고 말하며 뺄셈을 피하려 함"></textarea>
+      <textarea id="feedbackStart" placeholder="예: 시작 전 어렵다고 말하며 뺄셈을 피하려 함" maxlength="300"></textarea>
       <label class="field-label" for="feedbackAction">수업에서 확인된 행동·성과</label>
-      <textarea id="feedbackAction" placeholder="예: 소수점 위치를 맞추는 방법을 익히고 뺄셈 문제를 스스로 해결함"></textarea>
+      <textarea id="feedbackAction" placeholder="예: 소수점 위치를 맞추는 방법을 익히고 뺄셈 문제를 스스로 해결함" maxlength="300"></textarea>
       <label class="field-label" for="feedbackLearningPoint">관련 학습 포인트 (선택)</label>
-      <textarea id="feedbackLearningPoint" placeholder="예: 이번 단원 오답률 20%→10%로 개선, 소수 연산 84점"></textarea>
+      <textarea id="feedbackLearningPoint" placeholder="예: 이번 단원 오답률 20%→10%로 개선, 소수 연산 84점" maxlength="200"></textarea>
       <p class="field-help">최근 진단/성적 관련 수치가 있으면 적어주세요 — 수업 관찰 내용과 자연스럽게 엮어서 문안에 반영됩니다.</p>
       <label class="field-label" for="feedbackQuote">학생이 직접 한 말 (선택)</label>
-      <textarea id="feedbackQuote" placeholder="예: 발표하는 건 부끄러워요"></textarea>
+      <textarea id="feedbackQuote" placeholder="예: 발표하는 건 부끄러워요" maxlength="200"></textarea>
       <label class="field-label" for="feedbackInterpretation">선생님의 해석·가설 (선택)</label>
-      <textarea id="feedbackInterpretation" placeholder="관찰과 구분해서 기록합니다. 학부모용 초안에는 자동으로 포함되지 않습니다."></textarea>
+      <textarea id="feedbackInterpretation" placeholder="관찰과 구분해서 기록합니다. 학부모용 초안에는 자동으로 포함되지 않습니다." maxlength="300"></textarea>
       <label class="field-label" for="feedbackNext">다음 수업 방향</label>
-      <textarea id="feedbackNext" placeholder="예: 학생이 쉬운 문제를 직접 고르고 혼자 시도할 시간을 줌"></textarea>
+      <textarea id="feedbackNext" placeholder="예: 학생이 쉬운 문제를 직접 고르고 혼자 시도할 시간을 줌" maxlength="300"></textarea>
       <label class="field-label" for="feedbackHome">가정에 전할 실천 제안 (선택)</label>
-      <textarea id="feedbackHome" placeholder="예: 정답보다 스스로 시도한 과정을 구체적으로 칭찬해 주세요"></textarea>
+      <textarea id="feedbackHome" placeholder="예: 정답보다 스스로 시도한 과정을 구체적으로 칭찬해 주세요" maxlength="300"></textarea>
       <button class="btn secondary" id="feedbackExampleBtn" type="button">가상 사례 불러오기</button>
       <div class="hint">테스트용 예시 데이터예요. 눌러서 입력칸을 채운 뒤 "학부모용 초안 만들기"를 눌러보면 실제로 어떤 결과가 나오는지 바로 확인할 수 있어요.</div>
       <button class="btn" id="feedbackGenerateBtn" type="button">학부모용 초안 만들기</button>
+      <div class="gen-error" id="feedbackGenError" style="display:none;"></div>
     </div>
     <div class="card feedback-result" id="feedbackResult">
       <div class="card-title">학부모용 피드백 초안 <span class="ai-badge" id="feedbackBadge">AI (데모 문안)</span></div>
-      <div class="feedback-text" id="feedbackText"></div>
+      <div class="stale-warning" id="feedbackStaleWarning" style="display:none;">
+        입력 내용이 바뀌었어요 — 아래 버튼은 "학부모용 초안 만들기"로 다시 생성해야 눌러져요. (서로 다른 학생 정보가 섞이는 걸 막기 위해서예요)
+      </div>
+      <div class="feedback-text" id="feedbackText" contenteditable="true"></div>
       <div class="merge-section" id="mergeSection" style="display:none;">
         <div class="merge-divider">＋ 최근 학습 리포트 (<span id="mergeReportDate"></span>)</div>
-        <div class="feedback-text" id="mergedReportText"></div>
+        <div class="feedback-text" id="mergedReportText" contenteditable="true"></div>
       </div>
+      <div class="hint">✏️ 클릭해서 내용을 직접 수정한 뒤 복사·공유할 수 있어요. 수정한 내용이 그대로 전달됩니다.</div>
       <div class="review-note">이 초안은 관찰 기록만으로 작성했습니다. 선생님의 해석·가설과 민감한 대화는 선생님이 검토한 뒤 필요한 범위에서 직접 반영하세요.</div>
       <button class="btn secondary" id="feedbackMergeBtn" type="button">최근 리포트와 합쳐서 보내기</button>
       <button class="btn kakao" id="kakaoShareFeedbackBtn" type="button" style="margin-top:8px;">카카오톡으로 공유하기</button>
@@ -450,6 +510,22 @@
 
 <script>
 /* ---------------------------------------------------------
+   b18: 서버 함수 호출 시 함께 보내는 앱 공유 키 — Netlify 환경변수 APP_SHARED_SECRET을
+   설정해두면 서버(generate-report.js/generate-feedback.js)가 이 값과 일치하는 요청만 받습니다.
+   주의: 이 값은 배포된 JS 파일 안에 그대로 노출되므로 "진짜 인증"이 아니라, 주소를 모르는
+   봇/스크래퍼가 함수를 무작위로 호출하는 것을 막는 최소한의 장치입니다. 실제 서비스 오픈 전에는
+   선생님별 로그인(Supabase Auth 등) 기반 인증으로 교체해야 합니다 — 이번 수정 범위에는 포함하지 않았습니다.
+   서버에 APP_SHARED_SECRET을 설정하지 않았다면 서버 쪽에서 이 헤더 검증을 건너뛰므로 지금 당장
+   바꾸지 않아도 기존처럼 동작합니다.
+--------------------------------------------------------- */
+const APP_SHARED_KEY = ""; // 예: "여기에-넷리파이-APP_SHARED_SECRET과-동일한-값을-입력" (선택 사항)
+function apiHeaders(){
+  const headers = { "content-type": "application/json" };
+  if(APP_SHARED_KEY) headers["x-app-key"] = APP_SHARED_KEY;
+  return headers;
+}
+
+/* ---------------------------------------------------------
    카카오톡 공유 — Kakao Developers에서 발급받은 JavaScript 키 (공개용 키, 노출돼도 안전)
    b11: 카카오 SDK 연결 + shareTextViaKakao() 공용 함수. 기본 텍스트 템플릿은 200자 제한이 있어서,
    넘으면 자동으로 클립보드 복사로 대체(fallback)함 — 리포트(400~600자)는 대부분 이 경로를 탐.
@@ -461,9 +537,15 @@ if(window.Kakao && !Kakao.isInitialized()){
 const KAKAO_TEXT_LIMIT = 200; // 카카오 기본 텍스트 템플릿 제한
 
 function shareTextViaKakao(text, buttonTitle){
-  const copyFallback = (reason)=>{
-    navigator.clipboard?.writeText(text).catch(()=>{});
-    showToast(reason);
+  // b18: 복사가 실제로 성공했을 때만 성공 안내를 보여줍니다 (예전에는 항상 성공 메시지가 떴음)
+  const copyFallback = async (reason)=>{
+    try{
+      if(!navigator.clipboard) throw new Error("clipboard API 없음");
+      await navigator.clipboard.writeText(text);
+      showToast(reason);
+    }catch(e){
+      showToast("복사에 실패했어요 — 내용을 직접 선택해 복사해주세요");
+    }
   };
   if(!window.Kakao || !Kakao.isInitialized()){
     copyFallback("카카오톡 공유를 불러오지 못해 대신 복사했어요 — 카카오톡에 붙여넣어 주세요");
@@ -524,31 +606,48 @@ function escapeHtml(value){
 /* ---------------------------------------------------------
    상태 (localStorage로 데모 영속화 — 실서비스는 Supabase)
 --------------------------------------------------------- */
-let currentBrandId = localStorage.getItem("demo_currentBrand") || "demo";
+let currentBrandId = safeGetItem("demo_currentBrand") || "demo";
 if(!BRANDS[currentBrandId]){
   // 예전 테스트에서 저장된 브랜드가 더 이상 존재하지 않을 때(예: 강동송파 제거) 첫 번째 브랜드로 안전하게 대체
   currentBrandId = Object.keys(BRANDS)[0];
-  localStorage.setItem("demo_currentBrand", currentBrandId);
+  safeSetItem("demo_currentBrand", currentBrandId);
 }
 let lastReport = null;
 
+// b18: localStorage 접근을 모두 try/catch로 감쌉니다 — 시크릿 모드, 저장공간 초과,
+// 브라우저 설정으로 localStorage가 막힌 경우 등에서 예외가 나면 화면 전체가 멈추는 대신
+// 안내 토스트를 보여주고 계속 진행하도록 합니다.
+function safeGetItem(key){
+  try{ return localStorage.getItem(key); }catch(e){ return null; }
+}
+function safeSetItem(key, value){
+  try{ localStorage.setItem(key, value); return true; }
+  catch(e){
+    showToast("저장에 실패했어요 (브라우저 저장공간 문제일 수 있어요) — 화면 내용은 그대로 유지됩니다");
+    return false;
+  }
+}
 function getConfig(brandId){
-  const saved = localStorage.getItem("demo_config_"+brandId);
-  if(saved) return JSON.parse(saved);
+  const saved = safeGetItem("demo_config_"+brandId);
+  if(saved){
+    try{ return JSON.parse(saved); }catch(e){ /* 저장된 값이 손상된 경우 기본값으로 복구 */ }
+  }
   const b = BRANDS[brandId];
   return { enabledOptional: [...b.enabledOptional] };
 }
 function saveConfig(brandId, cfg){
-  localStorage.setItem("demo_config_"+brandId, JSON.stringify(cfg));
+  safeSetItem("demo_config_"+brandId, JSON.stringify(cfg));
 }
 function getHistory(brandId){
-  const saved = localStorage.getItem("demo_history_"+brandId);
-  return saved ? JSON.parse(saved) : [];
+  const saved = safeGetItem("demo_history_"+brandId);
+  if(!saved) return [];
+  try{ return JSON.parse(saved); }catch(e){ return []; }
 }
+// 주의: 최근 20건까지만 이 브라우저에 저장됩니다(slice(0,20)) — 이력 탭에 안내 문구로도 표시됩니다.
 function saveHistoryItem(brandId, item){
   const list = getHistory(brandId);
   list.unshift(item);
-  localStorage.setItem("demo_history_"+brandId, JSON.stringify(list.slice(0,20)));
+  return safeSetItem("demo_history_"+brandId, JSON.stringify(list.slice(0,20)));
 }
 
 /* ---------------------------------------------------------
@@ -564,8 +663,16 @@ function applyTheme(brandId){
 /* ---------------------------------------------------------
    입력 폼 동적 렌더링 (코어 / 확장 분리 — 위저드 스텝별로 표시)
 --------------------------------------------------------- */
-function renderFieldGroup(fieldList, containerId, emptyMsg){
+function renderFieldGroup(fieldList, containerId, emptyMsg, preserveValues){
   const container = document.getElementById(containerId);
+  // b18: 필드 설정(확장 항목 on/off)을 바꾸면 이 함수가 다시 호출되면서 입력칸을 통째로 새로
+  // 그리는데, 예전에는 이때 이미 입력해둔 값이 그대로 사라졌음. preserveValues가 true일 때는
+  // 다시 그리기 전에 값을 저장해뒀다가, 같은 필드가 그대로 남아있으면 복원합니다.
+  // (다음 학생 입력을 위해 일부러 폼을 비우는 경우에는 preserveValues를 넘기지 않습니다.)
+  const previousValues = {};
+  if(preserveValues){
+    container.querySelectorAll("[data-field]").forEach(el=>{ previousValues[el.dataset.field] = el.value; });
+  }
   container.innerHTML = "";
   if(!fieldList.length){
     container.innerHTML = `<div class="hint">${emptyMsg || "표시할 항목이 없습니다."}</div>`;
@@ -595,6 +702,15 @@ function renderFieldGroup(fieldList, containerId, emptyMsg){
     container.appendChild(wrap);
   });
 
+  // b18: 다시 그리기 전 값이 있던 필드는 복원 (같은 id로 여전히 존재하는 경우에만)
+  if(preserveValues){
+    container.querySelectorAll("[data-field]").forEach(el=>{
+      if(Object.prototype.hasOwnProperty.call(previousValues, el.dataset.field)){
+        el.value = previousValues[el.dataset.field];
+      }
+    });
+  }
+
   // 숫자 필드 단위(suffix) 표시 + textarea 글자수 카운터, 입력할 때마다 실시간 반영
   container.querySelectorAll("[data-field]").forEach(el=>{
     const suffixEl = container.querySelector(`[data-suffix-for="${el.dataset.field}"]`);
@@ -612,12 +728,13 @@ function renderCoreFieldsInput(){
   const ids = BRANDS[currentBrandId].enabledCore;
   renderFieldGroup(ids.map(fieldById).filter(Boolean), "coreFieldsInput");
 }
-function renderOptionalFieldsInput(){
+function renderOptionalFieldsInput(preserveValues){
   const cfg = getConfig(currentBrandId);
   renderFieldGroup(
     cfg.enabledOptional.map(fieldById).filter(Boolean),
     "optionalFieldsInput",
-    "이 학원에는 켜진 확장 항목이 없어요. '필드 설정' 탭에서 추가할 수 있습니다."
+    "이 학원에는 켜진 확장 항목이 없어요. '필드 설정' 탭에서 추가할 수 있습니다.",
+    preserveValues
   );
 }
 function renderAllInputFields(){
@@ -655,7 +772,7 @@ function renderConfigToggles(){
       if(el.checked){ if(!cfg.enabledOptional.includes(id)) cfg.enabledOptional.push(id); }
       else { cfg.enabledOptional = cfg.enabledOptional.filter(x=>x!==id); }
       saveConfig(currentBrandId, cfg);
-      renderOptionalFieldsInput();
+      renderOptionalFieldsInput(true); // b18: 설정 변경으로 다시 그릴 때는 이미 입력한 값을 유지
       showToast(el.checked ? "항목이 켜졌습니다" : "항목이 꺼졌습니다");
     });
   });
@@ -672,20 +789,26 @@ function collectInputValues(){
   return values;
 }
 
+// b18: 데모 문안에도 "근거 없는 해석 방지" 원칙을 적용합니다 —
+// (1) 집중도·출석 같은 관찰 사실만으로 "개념을 잘 이해했다"는 식의 결론으로 비약하지 않고,
+// (2) 정서 기록(diaryEmotion)은 아이의 내면 상태를 확정 진단하듯 쓰지 않고 "기록된 내용"으로만 전달하며,
+// (3) 선생님이 실제로 입력하지 않은 구체적 지도 계획을 확정적으로 약속하지 않습니다.
 function buildNarrative(studentName, values){
   const parts = [];
   parts.push(`${studentName} 학생은 이번 진단에서 `);
   if(values.unitScore) parts.push(`단원 점수 ${values.unitScore}점을 기록했습니다. `);
-  if(values.wrongType) parts.push(`주요 오답 원인은 '${values.wrongType}'로 분석되며, 이 부분에 대한 보완이 필요합니다. `);
+  if(values.wrongType) parts.push(`주요 오답 유형은 '${values.wrongType}'로 확인되며, 이 부분에 대한 추가 연습이 도움이 될 수 있습니다. `);
   if(values.attendance) parts.push(`출석 및 과제 이행률은 ${values.attendance}%로 확인됩니다. `);
   if(values.teacherNote) parts.push(`\n\n담당 선생님 코멘트: "${values.teacherNote}" `);
-  if(values.studyTime) parts.push(`\n\n주간 학습 패턴은 ${values.studyTime} 수준입니다. `);
+  if(values.studyTime) parts.push(`\n\n주간 학습 패턴은 ${values.studyTime} 수준으로 관찰됩니다. `);
   if(values.trend) parts.push(`최근 성적 추이는 '${values.trend}' 흐름을 보이고 있습니다. `);
   if(values.peerRank) parts.push(`또래 대비 상위 ${values.peerRank}% 수준입니다. `);
   if(values.focus) parts.push(`수업 집중도는 '${values.focus}'로 관찰되었습니다. `);
   if(values.consultNote) parts.push(`\n\n최근 상담 이력: ${values.consultNote} `);
-  if(values.diaryEmotion) parts.push(`\n\n최근 정서 상태는 '${values.diaryEmotion}' 경향으로 나타났습니다. `);
-  parts.push(`\n\n다음 학습 계획에서는 취약 영역 보완과 함께 학생의 자신감을 높이는 방향으로 지도할 예정입니다.`);
+  // 정서 기록은 "그렇게 느낀다/그런 상태다"로 단정하지 않고, 기록된 사실로만 전달합니다.
+  if(values.diaryEmotion) parts.push(`\n\n최근 학습 일지에는 '${values.diaryEmotion}' 정서가 기록되어 있습니다 (아이의 말이나 표정 등 관찰에 근거한 기록이며, 원인에 대한 확정적 판단은 아닙니다). `);
+  // 선생님이 실제로 입력하지 않은 구체적 지도 계획을 임의로 확정해 약속하지 않습니다.
+  parts.push(`\n\n위 내용은 관찰된 사실과 선생님이 입력한 항목을 바탕으로 정리한 것입니다. 다음 수업의 구체적인 지도 방향은 담당 선생님과의 상담을 통해 확인해 주세요.`);
   return parts.join("");
 }
 
@@ -694,7 +817,13 @@ function renderReport(studentName, values, dateStr, narrativeText, sourceTag){
   const scoreEntries = Object.entries(values).filter(([k,v])=>v && (k==="unitScore"||k==="attendance"||k==="peerRank"));
   const scoreGrid = scoreEntries.map(([k,v])=>{
     const f = fieldById(k);
-    return `<div class="score-box"><div class="sb-label">${f.label}</div><div class="sb-value">${escapeHtml(v)}${k==="unitScore"?"점":k==="peerRank"?"%ile":"%"}</div></div>`;
+    // b18: peerRank는 "상위 N%"로 입력받는 값이라 리포트 본문도 "상위 N%"라고 쓰는데,
+    // 여기 점수 카드만 "N%ile"로 표시돼 의미가 어긋나 있었음(퍼센타일은 보통 하위 기준이라 반대 의미로 읽힘).
+    // 본문과 동일하게 "상위 N%"로 통일.
+    const valueText = k==="unitScore" ? `${escapeHtml(v)}점`
+      : k==="peerRank" ? `상위 ${escapeHtml(v)}%`
+      : `${escapeHtml(v)}%`;
+    return `<div class="score-box"><div class="sb-label">${f.label}</div><div class="sb-value">${valueText}</div></div>`;
   }).join("");
 
   const badgeLabel = sourceTag === "api" ? "AI (Claude 실연동)" : "AI (데모 문안)";
@@ -708,19 +837,30 @@ function renderReport(studentName, values, dateStr, narrativeText, sourceTag){
     </div>
     <div class="narrative">
       <div class="narrative-label">AI 생성 리포트 <span class="ai-badge">${badgeLabel}</span></div>
-      ${narrativeText}
+      <div class="narrative-editable" id="reportNarrativeText" contenteditable="true">${narrativeText}</div>
     </div>
-    <button class="btn kakao" id="kakaoShareReportBtn" style="margin-top:14px;">카카오톡으로 공유하기</button>
+    <div class="hint">✏️ 클릭해서 내용을 직접 수정한 뒤 복사·공유할 수 있어요. 수정한 내용이 그대로 전달됩니다.</div>
+    <button class="btn kakao" id="kakaoShareReportBtn" style="margin-top:8px;">카카오톡으로 공유하기</button>
     <button class="btn secondary" id="copyLinkBtn" style="margin-top:8px;">텍스트 복사</button>
   `;
   document.getElementById("reportContent").innerHTML = html;
-  const reportPlainText = `[${b.name} 학습 리포트]\n${studentName} 학생 · ${dateStr}\n\n${htmlNarrativeToPlainText(narrativeText)}`;
+  // b18: 클릭하는 시점에 화면(직접 수정했을 수도 있는 내용)을 다시 읽어서 그 내용을 공유/복사합니다 —
+  // 렌더링 시점에 고정해둔 문자열을 쓰지 않도록 함수로 만듦.
+  const buildReportPlainText = ()=>{
+    const currentNarrative = document.getElementById("reportNarrativeText").innerText.trim();
+    return `[${b.name} 학습 리포트]\n${studentName} 학생 · ${dateStr}\n\n${currentNarrative}`;
+  };
   document.getElementById("kakaoShareReportBtn").addEventListener("click", ()=>{
-    shareTextViaKakao(reportPlainText, "학습 리포트 보기");
+    shareTextViaKakao(buildReportPlainText(), "학습 리포트 보기");
   });
-  document.getElementById("copyLinkBtn").addEventListener("click", ()=>{
-    navigator.clipboard?.writeText(reportPlainText).catch(()=>{});
-    showToast("리포트 내용이 복사되었습니다");
+  document.getElementById("copyLinkBtn").addEventListener("click", async ()=>{
+    try{
+      if(!navigator.clipboard) throw new Error("clipboard API 없음");
+      await navigator.clipboard.writeText(buildReportPlainText());
+      showToast("리포트 내용이 복사되었습니다");
+    }catch(e){
+      showToast("복사에 실패했어요 — 내용을 직접 선택해 복사해주세요");
+    }
   });
 }
 
@@ -728,21 +868,33 @@ function renderReport(studentName, values, dateStr, narrativeText, sourceTag){
    실제 Claude API(Netlify Function) 호출 — 배포 후에만 동작
    로컬 파일 실행이나 함수 미배포 상태에서는 자동으로 규칙 기반 문안으로 대체됩니다.
 --------------------------------------------------------- */
+// b18: "서버 함수에 아예 연결할 수 없는 경우"(로컬 파일 직접 열기, 함수 미배포 — 404)만 데모 문안으로
+// 조용히 대체합니다. 함수가 응답은 했지만 실패한 경우(5xx, 빈 응답, 잘린 응답 등)는 데모로 숨기지 않고
+// 에러를 던져서 화면에 실패 안내 + 재시도를 보여줍니다.
 async function generateNarrative(studentName, values){
   const b = BRANDS[currentBrandId];
+  let res;
   try{
-    const res = await fetch("/.netlify/functions/generate-report", {
+    res = await fetch("/.netlify/functions/generate-report", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: apiHeaders(),
       body: JSON.stringify({ studentName, brandName: b.name, values })
     });
-    if(!res.ok) throw new Error("function not ok");
-    const data = await res.json();
-    if(!data.narrative) throw new Error("no narrative");
-    return { text: formatNarrativeHtml(data.narrative), source: "api" };
-  }catch(e){
+  }catch(networkErr){
+    // 함수 자체에 연결이 안 됨 (예: 로컬에서 index.html을 직접 열었을 때) → 데모로 대체
     return { text: formatNarrativeHtml(buildNarrative(studentName, values)), source: "demo" };
   }
+  if(res.status === 404){
+    // 함수가 아직 배포되지 않음 → 데모로 대체
+    return { text: formatNarrativeHtml(buildNarrative(studentName, values)), source: "demo" };
+  }
+  let data = null;
+  try{ data = await res.json(); }catch(parseErr){ data = null; }
+  if(!res.ok || !data || !data.narrative){
+    const serverMsg = data && data.error ? data.error : null;
+    throw new Error(serverMsg || `서버에서 리포트를 만들지 못했어요 (상태 코드 ${res.status})`);
+  }
+  return { text: formatNarrativeHtml(data.narrative), source: "api" };
 }
 
 // 문단 사이 줄바꿈(\n\n 이상)은 <br><br>로, 문단 안 줄바꿈(\n 하나)은 <br> 하나로 —
@@ -870,10 +1022,21 @@ document.getElementById("generateBtn").addEventListener("click", async ()=>{
   const dateStr = new Date().toLocaleDateString("ko-KR", { year:"numeric", month:"long", day:"numeric" });
 
   const btn = document.getElementById("generateBtn");
+  const errBox = document.getElementById("reportGenError");
+  errBox.style.display = "none"; errBox.textContent = "";
   btn.disabled = true; btn.textContent = "AI가 리포트를 작성하고 있어요...";
   showToast("리포트 생성 중...");
 
-  const { text, source } = await generateNarrative(studentName, values);
+  let text, source;
+  try{
+    ({ text, source } = await generateNarrative(studentName, values));
+  }catch(e){
+    btn.disabled = false; btn.textContent = "AI 리포트 생성하기";
+    errBox.textContent = `⚠️ 리포트를 생성하지 못했어요: ${e.message} — 다시 시도해주세요.`;
+    errBox.style.display = "block";
+    showToast("리포트 생성에 실패했어요");
+    return;
+  }
 
   btn.disabled = false; btn.textContent = "AI 리포트 생성하기";
   renderReport(studentName, values, dateStr, text, source);
@@ -920,13 +1083,13 @@ function showToast(msg){
 function noticeKey(){ return "demo_hideSetupNotice_"+currentBrandId; }
 function renderSetupNotice(){
   const notice = document.getElementById("setupNotice");
-  notice.style.display = localStorage.getItem(noticeKey()) === "1" ? "none" : "block";
+  notice.style.display = safeGetItem(noticeKey()) === "1" ? "none" : "block";
 }
 document.getElementById("goToConfigBtn").addEventListener("click", ()=>{
   switchTab("config");
 });
 document.getElementById("dismissNoticeBtn").addEventListener("click", ()=>{
-  localStorage.setItem(noticeKey(), "1");
+  safeSetItem(noticeKey(), "1");
   renderSetupNotice();
   showToast("다음부터는 안내가 표시되지 않아요");
 });
@@ -978,22 +1141,60 @@ function buildFeedbackDraftLocal(student, session, start, action, learningPoint,
   return paragraphs.join("\n\n");
 }
 
-// 실제 Claude API(Netlify Function) 호출 — 배포 후에만 동작, 실패 시 규칙 기반으로 자동 대체
+// b18: generateNarrative와 동일한 원칙 — 함수 미배포/연결 불가(404, 네트워크 오류)일 때만 데모로 조용히
+// 대체하고, 함수가 응답했지만 실패한 경우는 에러를 던져 화면에 실패 안내를 보여줍니다.
 async function generateFeedbackDraft(student, session, start, action, learningPoint, quote, next, home){
+  let res;
   try{
-    const res = await fetch("/.netlify/functions/generate-feedback", {
+    res = await fetch("/.netlify/functions/generate-feedback", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: apiHeaders(),
       body: JSON.stringify({ brandName: BRANDS[currentBrandId].name, student, session, start, action, learningPoint, quote, next, home })
     });
-    if(!res.ok) throw new Error("function not ok");
-    const data = await res.json();
-    if(!data.feedback) throw new Error("no feedback");
-    return { text: data.feedback, source: "api" };
-  }catch(e){
+  }catch(networkErr){
     return { text: buildFeedbackDraftLocal(student, session, start, action, learningPoint, quote, next, home), source: "demo" };
   }
+  if(res.status === 404){
+    return { text: buildFeedbackDraftLocal(student, session, start, action, learningPoint, quote, next, home), source: "demo" };
+  }
+  let data = null;
+  try{ data = await res.json(); }catch(parseErr){ data = null; }
+  if(!res.ok || !data || !data.feedback){
+    const serverMsg = data && data.error ? data.error : null;
+    throw new Error(serverMsg || `서버에서 초안을 만들지 못했어요 (상태 코드 ${res.status})`);
+  }
+  return { text: data.feedback, source: "api" };
 }
+
+// b18: 학생별 결과 혼합 방지 — 초안을 생성한 "그 순간"의 입력값 스냅샷을 저장해두고,
+// 이후 입력 필드가 하나라도 바뀌면(이름을 포함해) 합치기/복사/공유를 막습니다.
+// 다시 생성해야만 스냅샷이 갱신되어 버튼이 풀립니다 — 다른 학생의 결과가 섞이는 걸 막기 위함입니다.
+function currentFeedbackInputs(){
+  const inputs = {};
+  feedbackIds.forEach(id=>{ inputs[id] = feedbackValue(id); });
+  return inputs;
+}
+function feedbackInputsEqual(a, b){
+  if(!a || !b) return false;
+  return feedbackIds.every(id => a[id] === b[id]);
+}
+function isFeedbackDraftStale(){
+  return !!feedbackDraftMeta && !feedbackInputsEqual(feedbackDraftMeta.inputs, currentFeedbackInputs());
+}
+function updateFeedbackStaleUI(){
+  const stale = isFeedbackDraftStale();
+  const hasDraft = !!feedbackDraft;
+  const warning = document.getElementById("feedbackStaleWarning");
+  const mergeBtn = document.getElementById("feedbackMergeBtn");
+  const kakaoBtn = document.getElementById("kakaoShareFeedbackBtn");
+  const copyBtn = document.getElementById("feedbackCopyBtn");
+  warning.style.display = (hasDraft && stale) ? "block" : "none";
+  const shouldBlock = !hasDraft || stale;
+  [mergeBtn, kakaoBtn, copyBtn].forEach(b=>{ b.disabled = shouldBlock; });
+}
+feedbackIds.forEach(id=>{
+  document.getElementById(id).addEventListener("input", updateFeedbackStaleUI);
+});
 
 document.getElementById("feedbackGenerateBtn").addEventListener("click", async ()=>{
   const student = feedbackValue("feedbackStudent");
@@ -1010,14 +1211,28 @@ document.getElementById("feedbackGenerateBtn").addEventListener("click", async (
   const home = feedbackValue("feedbackHome");
 
   const btn = document.getElementById("feedbackGenerateBtn");
+  const errBox = document.getElementById("feedbackGenError");
+  errBox.style.display = "none"; errBox.textContent = "";
   btn.disabled = true; btn.textContent = "AI가 초안을 작성하고 있어요...";
   showToast("초안 생성 중...");
 
-  const { text, source } = await generateFeedbackDraft(student, session, start, action, learningPoint, quote, next, home);
+  let text, source;
+  try{
+    ({ text, source } = await generateFeedbackDraft(student, session, start, action, learningPoint, quote, next, home));
+  }catch(e){
+    btn.disabled = false; btn.textContent = "학부모용 초안 만들기";
+    errBox.textContent = `⚠️ 초안을 생성하지 못했어요: ${e.message} — 다시 시도해주세요.`;
+    errBox.style.display = "block";
+    showToast("초안 생성에 실패했어요");
+    return;
+  }
 
   btn.disabled = false; btn.textContent = "학부모용 초안 만들기";
   feedbackDraft = text;
+  // 생성 당시의 입력값을 스냅샷으로 묶어 저장 — 이후 입력이 바뀌면 이 스냅샷과 비교해 감지합니다.
+  feedbackDraftMeta = { inputs: currentFeedbackInputs(), generatedAt: Date.now() };
   feedbackMerged = false;
+  mergedNarrativePlain = "";
   document.getElementById("mergeSection").style.display = "none";
   document.getElementById("feedbackMergeBtn").textContent = "최근 리포트와 합쳐서 보내기";
   document.getElementById("feedbackText").textContent = feedbackDraft;
@@ -1025,6 +1240,7 @@ document.getElementById("feedbackGenerateBtn").addEventListener("click", async (
   const result = document.getElementById("feedbackResult");
   result.classList.add("visible");
   result.scrollIntoView({behavior:"smooth", block:"start"});
+  updateFeedbackStaleUI();
   showToast(source === "api" ? "Claude API로 초안이 만들어졌습니다" : "피드백 초안이 만들어졌습니다 (데모 문안 — 배포 시 Claude API로 자동 전환)");
 });
 
@@ -1037,40 +1253,67 @@ function htmlNarrativeToPlainText(html){
 }
 
 let feedbackMerged = false;
-let mergedDraftText = "";
+let feedbackDraftMeta = null; // b18: { inputs, generatedAt } — 생성 시점 입력값 스냅샷
+let mergedNarrativePlain = ""; // 합친 리포트의 원문(평문) — 화면 표시용, 실제 복사/공유는 contenteditable의 최신 내용을 읽음
+
+// b18: 화면(직접 수정했을 수도 있는 내용)을 클릭 시점에 다시 읽어 사용 — 렌더 시점 문자열에 고정하지 않음
+function currentFeedbackDraftText(){ return document.getElementById("feedbackText").innerText.trim(); }
+function currentMergedReportText(){ return document.getElementById("mergedReportText").innerText.trim(); }
+function buildFeedbackShareText(){
+  const draftText = currentFeedbackDraftText();
+  if(!feedbackMerged) return draftText;
+  const date = document.getElementById("mergeReportDate").textContent;
+  return `${draftText}\n\n— — —\n[최근 학습 리포트 · ${date}]\n${currentMergedReportText()}`;
+}
 
 document.getElementById("feedbackMergeBtn").addEventListener("click", ()=>{
+  if(!feedbackDraft){ showToast("먼저 학부모용 초안을 만들어주세요"); return; }
+  if(isFeedbackDraftStale()){
+    showToast("입력 내용이 바뀌었어요 — 다시 생성한 뒤 합쳐주세요");
+    updateFeedbackStaleUI();
+    return;
+  }
   const studentName = feedbackValue("feedbackStudent");
   if(!studentName){ showToast("학생 표시 이름을 먼저 입력해주세요"); return; }
   const history = getHistory(currentBrandId);
-  // 피드백에 적은 학생 표시 이름과 정확히 일치하는 것 중 가장 최근 리포트를 찾습니다 (이력은 최신순 정렬).
-  const match = history.find(item => item.studentName.trim() === studentName);
-  if(!match){
+  // 피드백에 적은 학생 표시 이름과 정확히 일치하는 이력을 모두 찾습니다 (이력은 최신순 정렬).
+  // b18: 동명이인 문제 — 이름만으로 매칭하므로, 일치하는 이력이 여러 건이면 가장 최근 것을 쓰되
+  // 반드시 어떤 날짜의 기록을 합쳤는지 화면에 표시하고, 다른 학생일 수 있다는 점을 안내합니다.
+  const matches = history.filter(item => item.studentName.trim() === studentName);
+  if(!matches.length){
     showToast(`"${studentName}" 이름으로 저장된 학습 리포트를 찾지 못했어요`);
     return;
   }
+  const match = matches[0];
   const plainNarrative = htmlNarrativeToPlainText(match.narrative || "");
-  mergedDraftText = `${feedbackDraft}\n\n— — —\n[최근 학습 리포트 · ${match.date}]\n${plainNarrative}`;
+  mergedNarrativePlain = plainNarrative;
   feedbackMerged = true;
 
   document.getElementById("mergeReportDate").textContent = match.date;
   document.getElementById("mergedReportText").textContent = plainNarrative;
   document.getElementById("mergeSection").style.display = "block";
   document.getElementById("feedbackMergeBtn").textContent = "합쳐짐 ✓ (다시 누르면 갱신)";
-  showToast("최근 리포트를 합쳤습니다 — 초안 복사 시 함께 복사됩니다");
+  if(matches.length > 1){
+    showToast(`"${studentName}" 이름의 리포트가 ${matches.length}건 있어 가장 최근(${match.date}) 것을 합쳤어요 — 동명이인이면 확인해주세요`);
+  }else{
+    showToast(`최근 리포트(${match.date})를 합쳤습니다 — 초안 복사 시 함께 복사됩니다`);
+  }
 });
 
 document.getElementById("feedbackCopyBtn").addEventListener("click", async ()=>{
-  const textToCopy = feedbackMerged ? mergedDraftText : feedbackDraft;
+  if(isFeedbackDraftStale()){ showToast("입력 내용이 바뀌었어요 — 다시 생성한 뒤 복사해주세요"); updateFeedbackStaleUI(); return; }
+  const textToCopy = buildFeedbackShareText();
   if(!textToCopy) return;
   try{
+    if(!navigator.clipboard) throw new Error("clipboard API 없음");
     await navigator.clipboard.writeText(textToCopy);
     showToast(feedbackMerged ? "리포트가 합쳐진 초안을 복사했습니다" : "초안을 복사했습니다");
-  }catch(e){ showToast("복사할 수 없습니다. 초안을 선택해 복사해주세요"); }
+  }catch(e){ showToast("복사에 실패했어요 — 내용을 직접 선택해 복사해주세요"); }
 });
 
 document.getElementById("kakaoShareFeedbackBtn").addEventListener("click", ()=>{
-  const textToShare = feedbackMerged ? mergedDraftText : feedbackDraft;
+  if(isFeedbackDraftStale()){ showToast("입력 내용이 바뀌었어요 — 다시 생성한 뒤 공유해주세요"); updateFeedbackStaleUI(); return; }
+  const textToShare = buildFeedbackShareText();
   if(!textToShare){ showToast("먼저 학부모용 초안을 만들어주세요"); return; }
   shareTextViaKakao(textToShare, "피드백 자세히 보기");
 });
@@ -1082,6 +1325,7 @@ applyTheme(currentBrandId);
 renderAllInputFields();
 renderHistory();
 renderSetupNotice();
+updateFeedbackStaleUI();
 goToStep(1);
 </script>
 </body>
