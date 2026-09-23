@@ -177,7 +177,14 @@
       흐려지지(opacity 0.45) 않도록 별도 상태(.is-loading)를 둬서 "지금 활발히 작동 중"이라는
       게 분명히 보이게 함(setBtnLoading/restoreBtn 헬퍼로 정리, 원래 버튼 마크업은
       dataset에 저장해뒀다가 정확히 복원).
-  현재 빌드: b30 · 2026-09-23
+    b31 (이 파일 + functions/generate-report.js + functions/generate-feedback.js): 리포트/피드백
+      본문 말미에 "아이를 믿고 맡겨주신 데 대한 감사 + 궁금하면 언제든 문의해달라"는 마무리 인사를
+      추가. 실제 Claude API 경로(두 함수의 system prompt)에는 "매번 표현을 조금씩 다르게" 쓰라고
+      지시해 매 호출마다 자연스럽게 달라지게 함. 오프라인 데모 문안(HTML 안의 buildNarrative/
+      buildFeedbackDraftLocal)은 API 호출이 아니라 고정 로직이라 완전한 변주는 못 주지만,
+      최소한의 다양성을 위해 미리 준비한 문구 3개 중 하나를 무작위로 고르는 pickClosingLine()을
+      추가해 씀. functions 폴더도 같이 재배포해야 실제 반영됨.
+  현재 빌드: b31 · 2026-09-23
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -498,7 +505,7 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-version">v2.1 · idx b30</div>
+    <div class="topbar-version">v2.1 · idx b31</div>
     <button class="topbar-brand" id="homeBtn" type="button" aria-label="홈으로">
       <span class="brand-mark" aria-hidden="true"></span>
       <span id="brandNameTop">피드톡</span>
@@ -987,6 +994,18 @@ function collectInputValues(){
 // (1) 집중도·출석 같은 관찰 사실만으로 "개념을 잘 이해했다"는 식의 결론으로 비약하지 않고,
 // (2) 정서 기록(diaryEmotion)은 아이의 내면 상태를 확정 진단하듯 쓰지 않고 "기록된 내용"으로만 전달하며,
 // (3) 선생님이 실제로 입력하지 않은 구체적 지도 계획을 확정적으로 약속하지 않습니다.
+// b31: 데모(오프라인) 문안에도 AI 프롬프트와 같은 원칙의 마무리 인사를 붙임 — 실제 API 호출이
+// 아니라 매번 똑같이 고정된 문장이 나가는 게 당연하지만, 최소한의 변주는 주기 위해 후보 중
+// 하나를 무작위로 고름 (호출할 때마다 조금씩 달라 보이게).
+const CLOSING_LINES = [
+  "오늘도 아이를 믿고 맡겨주셔서 감사합니다. 궁금하신 점 있으시면 언제든 편하게 말씀해 주세요.",
+  "늘 아이를 믿고 지켜봐 주셔서 감사드립니다. 궁금한 점은 언제든 편하게 문의해 주세요.",
+  "오늘도 아이를 믿고 맡겨주셔서 감사합니다. 언제든 편하게 연락 주세요.",
+];
+function pickClosingLine(){
+  return CLOSING_LINES[Math.floor(Math.random() * CLOSING_LINES.length)];
+}
+
 function buildNarrative(studentName, values){
   const parts = [];
   parts.push(`${studentName} 학생은 이번 진단에서 `);
@@ -1003,6 +1022,7 @@ function buildNarrative(studentName, values){
   if(values.diaryEmotion) parts.push(`\n\n최근 학습 일지에는 '${values.diaryEmotion}' 정서가 기록되어 있습니다 (아이의 말이나 표정 등 관찰에 근거한 기록이며, 원인에 대한 확정적 판단은 아닙니다). `);
   // 선생님이 실제로 입력하지 않은 구체적 지도 계획을 임의로 확정해 약속하지 않습니다.
   parts.push(`\n\n위 내용은 관찰된 사실과 선생님이 입력한 항목을 바탕으로 정리한 것입니다. 다음 수업의 구체적인 지도 방향은 담당 선생님과의 상담을 통해 확인해 주세요.`);
+  parts.push(`\n\n${pickClosingLine()}`);
   return parts.join("");
 }
 
@@ -1335,7 +1355,7 @@ function buildFeedbackDraftLocal(student, session, start, action, learningPoint,
     learningPoint ? `최근 학습 현황으로는 ${learningPoint}.` : "",
     next ? `다음 시간에는 ${next}` : "",
     home ? `가정에서는 ${home}` : "",
-    "다음 수업에서도 직접 시도한 과정과 변화를 살펴보고 전해드리겠습니다."
+    `다음 수업에서도 직접 시도한 과정과 변화를 살펴보고 전해드리겠습니다. ${pickClosingLine()}`
   ].filter(Boolean);
   return paragraphs.join("\n\n");
 }
