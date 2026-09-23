@@ -108,7 +108,10 @@
       두 도구는 순서가 있는 단계가 아니라 서로 독립된 도구라서 번호가 오히려 "1번부터 순서대로"라는
       오해를 줄 수 있어 삭제. 2) 상단 슬로건 "AI가 학습리포트와 부모님피드백을 동시에"에 띄어쓰기
       추가 → "AI가 학습 리포트와 부모님 피드백을 동시에".
-  현재 빌드: b21 · 2026-09-23
+    b22 (이 파일): "시연용 화면입니다..." 안내 문구(.demo-notice) 제거 — 다른 원장님께 보여줄 때
+      실명을 넣지 말라는 안내였는데, 내부적으로 실명 입력해도 괜찮다고 합의되어 삭제 요청. (CSS
+      클래스 .demo-notice 자체는 남겨둠 — 나중에 다시 필요하면 같은 마크업 한 줄만 추가하면 됨)
+  현재 빌드: b22 · 2026-09-23
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -364,7 +367,7 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-version">v2.1 · idx b21</div>
+    <div class="topbar-version">v2.1 · idx b22</div>
     <button class="topbar-brand" id="homeBtn" type="button" aria-label="홈으로">
       <span class="brand-mark" aria-hidden="true"></span>
       <span id="brandNameTop">피드톡</span>
@@ -376,7 +379,6 @@
     <button class="mode-btn active" id="reportModeBtn" type="button"><strong>학습 리포트</strong><span>평가 항목 입력 → 학습 리포트</span></button>
     <button class="mode-btn" id="feedbackModeBtn" type="button"><strong>부모님 피드백</strong><span>수업 관찰 입력 → 학부모 피드백</span></button>
   </div>
-  <div class="demo-notice">시연용 화면입니다. 실제 학생 이름·상담 내용·연락처를 입력하지 마세요.</div>
 
   <div class="tabs">
     <div class="tab active" data-tab="input">진단 입력</div>
