@@ -131,7 +131,15 @@
       페이지 기본 배경(--bg)과 이미 동일했는데, 그림자가 걸려있어서 마치 흰 패널이 콘텐츠 위에
       따로 떠 있는 것처럼 보이는 효과가 생겨 "다음 버튼 영역만 흰색으로 구분돼 보인다"는 시각적
       위화감의 원인이었음. 그림자를 없애 배경에 완전히 녹아들게 함.
-  현재 빌드: b26 · 2026-09-23
+    b27 (이 파일): 토스 앱과 비교해서 전반적으로 "답답하다/폰트가 작다/상단 도구 선택 박스가 헤더에
+      붙어서 눈에 안 띈다"는 피드백 반영 — 카드형 UI에 전반적으로 여백과 입체감(그림자)을 더함.
+      1) 도구 선택 박스(.mode-btn): 헤더와의 간격을 16px→22px로 늘리고, 얇은 테두리만 있던 데서
+      그림자(box-shadow)를 추가해 카드가 배경 위에 살짝 떠 보이게 함. 안쪽 여백도 13px→16px로,
+      제목 글자도 15px→16.5px로, 설명 글자도 11px→12.5px로 키움. 2) 카드 전반(.card): 그림자를
+      더 또렷하게(0 1px 3px, 4% 불투명도 → 0 2px 10px, 6% 불투명도), 안쪽 여백 18px→20px, 카드
+      제목 16px→17px로 키움. 3) 탭 글자 14px→14.5px, 입력 항목 라벨 14px→14.5px(위쪽 여백도 살짝
+      늘림), 리포트·피드백 본문 글자 15px→15.5px로 소폭 확대. 전체적인 색·구조는 그대로 유지.
+  현재 빌드: b27 · 2026-09-23
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -191,17 +199,17 @@
   .brand-mark::after{content:"";position:absolute;left:6px;bottom:-5px;width:8px;height:8px;background:var(--brand-accent);clip-path:polygon(0 0, 100% 0, 0 100%);border-bottom-left-radius:2px;}
 
   .tabs{display:flex;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:76px;z-index:9;}
-  .tab{flex:1;text-align:center;padding:13px 0;font-size:14px;font-weight:600;color:var(--text-sub);cursor:pointer;border-bottom:2px solid transparent;}
+  .tab{flex:1;text-align:center;padding:14px 0;font-size:14.5px;font-weight:600;color:var(--text-sub);cursor:pointer;border-bottom:2px solid transparent;}
   .tab.active{color:var(--brand-primary);border-bottom-color:var(--brand-accent);}
 
-  .panel{display:none;padding:18px 16px;}
+  .panel{display:none;padding:20px 16px;}
   .panel.active{display:block;}
 
-  .card{background:var(--card);border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
-  .card-title{font-size:16px;font-weight:700;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
+  .card{background:var(--card);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:0 2px 10px rgba(13,27,62,0.06);}
+  .card-title{font-size:17px;font-weight:700;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
   .card-title small{font-size:12.5px;font-weight:500;color:var(--text-sub);}
 
-  label.field-label{display:block;font-size:14px;font-weight:600;color:var(--text-sub);margin:12px 0 7px;}
+  label.field-label{display:block;font-size:14.5px;font-weight:600;color:var(--text-sub);margin:14px 0 8px;}
   input[type=text], input[type=number], input[type=tel], select, textarea{
     width:100%;padding:14px 14px;border:1.5px solid var(--border);border-radius:12px;
     font-size:16px;font-family:inherit;background:#fafafa;min-height:52px;
@@ -298,7 +306,7 @@
   .score-box .sb-label{font-size:11px;opacity:0.7;margin-bottom:4px;}
   .score-box .sb-value{font-size:18px;font-weight:700;color:var(--brand-accent);}
 
-  .narrative{background:#fff;border-radius:16px;padding:18px;line-height:1.75;font-size:15px;white-space:pre-wrap;}
+  .narrative{background:#fff;border-radius:16px;padding:18px;line-height:1.75;font-size:15.5px;white-space:pre-wrap;}
   .narrative-label{font-size:12px;font-weight:700;color:var(--brand-sub);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
   /* b18: AI 생성 결과를 선생님이 직접 수정할 수 있도록 contenteditable 영역 스타일 */
   .narrative-editable, .feedback-text{
@@ -375,11 +383,17 @@
   .review-row:last-child{border-bottom:none;}
   .review-row .rr-label{color:var(--text-sub);flex-shrink:0;}
   .review-row .rr-value{font-weight:600;text-align:right;word-break:break-all;}
-  .mode-picker{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 16px 8px;}
-  .mode-btn{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:13px 10px;text-align:left;cursor:pointer;font-family:inherit;}
-  .mode-btn strong{display:block;font-size:15px;color:var(--brand-primary);margin-bottom:4px;}
-  .mode-btn span{font-size:11px;color:var(--text-sub);line-height:1.35;}
-  .mode-btn.active{border-color:var(--brand-accent);box-shadow:0 0 0 2px rgba(255,107,44,.12);}
+  .mode-picker{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:22px 16px 10px;}
+  .mode-btn{
+    background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:16px 14px;
+    text-align:left;cursor:pointer;font-family:inherit;
+    box-shadow:0 2px 10px rgba(13,27,62,0.07);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .mode-btn:active{transform:scale(0.98);}
+  .mode-btn strong{display:block;font-size:16.5px;color:var(--brand-primary);margin-bottom:5px;}
+  .mode-btn span{font-size:12.5px;color:var(--text-sub);line-height:1.4;}
+  .mode-btn.active{border-color:var(--brand-accent);box-shadow:0 2px 10px rgba(255,107,44,.18);}
   .demo-notice{font-size:12px;line-height:1.5;color:#675a41;background:#fff7e7;border:1px solid #f2e4c4;border-radius:10px;margin:8px 16px 0;padding:10px 12px;}
   .feedback-panel{display:none;padding:18px 16px;}
   body.mode-feedback .tabs,body.mode-feedback .panel{display:none!important;}
@@ -387,7 +401,7 @@
   .feedback-panel textarea{min-height:88px;line-height:1.5;}
   .feedback-result{display:none;}
   .feedback-result.visible{display:block;}
-  .feedback-text{white-space:pre-wrap;line-height:1.75;font-size:15px;}
+  .feedback-text{white-space:pre-wrap;line-height:1.75;font-size:15.5px;}
   .review-note{font-size:13px;line-height:1.6;color:#805c25;background:#fff7e7;border-radius:9px;padding:10px 12px;margin-top:14px;}
   .merge-section{margin-top:14px;padding-top:14px;border-top:1.5px dashed var(--border);}
   .merge-divider{font-size:12px;font-weight:700;color:var(--brand-sub);margin-bottom:8px;}
@@ -398,7 +412,7 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-version">v2.1 · idx b26</div>
+    <div class="topbar-version">v2.1 · idx b27</div>
     <button class="topbar-brand" id="homeBtn" type="button" aria-label="홈으로">
       <span class="brand-mark" aria-hidden="true"></span>
       <span id="brandNameTop">피드톡</span>
