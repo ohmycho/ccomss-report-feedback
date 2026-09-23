@@ -121,7 +121,13 @@
       오렌지 톤 배경+굵은 글씨)로 강조 — 리포트는 AI 리포트 라벨 바로 아래·수정 영역 바로 위로,
       피드백은 카드 제목 바로 아래로 이동. 결과가 뜨자마자 바로 보이는 위치라 이 기능을 놓치지 않게 함.
       (기존에는 결과 텍스트 아래쪽에 작은 회색 글씨로만 있어서 눈에 잘 안 띄었음)
-  현재 빌드: b24 · 2026-09-23
+    b25 (이 파일): "카카오톡으로 공유하기"와 "텍스트 복사"를 세로로 각각 꽉 찬 버튼 2개로 두던 걸
+      나란히 절반씩 배치(.btn-row)로 변경 — 실사용에서는 리포트/피드백 본문이 거의 항상 200자를
+      넘어서(카카오 기본 템플릿 제한), "카카오톡 공유"도 실제로는 대부분 자동 복사로 동작해 사실상
+      "텍스트 복사"와 같은 결과를 냄. 두 버튼을 세로로 나란히 크게 강조하면 같은 기능이 두 번
+      강조되는 느낌이라, 나란히 배치해 "관련된 두 선택지" 정도의 무게감으로 낮춤. 리포트/피드백 둘 다
+      적용, 피드백의 "최근 리포트와 합쳐서 보내기"는 다른 동작이라 그대로 위에 꽉 찬 버튼으로 유지.
+  현재 빌드: b25 · 2026-09-23
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -251,6 +257,10 @@
     display:flex;align-items:center;justify-content:center;gap:6px;
   }
   .btn.kakao svg{flex-shrink:0;}
+  /* b25: 카카오공유(200자 넘으면 사실상 복사와 동작이 같음)와 텍스트 복사를 나란히 배치해서
+     "거의 같은 기능인데 세로로 두 번 강조된" 느낌을 줄임 — 둘 다 폭을 절반씩 나눠 가짐 */
+  .btn-row{display:flex;gap:8px;margin-top:8px;}
+  .btn-row .btn{width:auto;flex:1;margin-top:0;padding-left:8px;padding-right:8px;}
 
   .hint{font-size:13px;color:var(--text-sub);line-height:1.5;margin-top:6px;}
   /* b24: 결과가 나오자마자 바로 보이도록, "직접 수정 가능" 안내를 눈에 띄는 배지 형태로 강조 */
@@ -385,7 +395,7 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-version">v2.1 · idx b24</div>
+    <div class="topbar-version">v2.1 · idx b25</div>
     <button class="topbar-brand" id="homeBtn" type="button" aria-label="홈으로">
       <span class="brand-mark" aria-hidden="true"></span>
       <span id="brandNameTop">피드톡</span>
@@ -537,9 +547,11 @@
       </div>
       <div class="review-note">이 초안은 관찰 기록만으로 작성했습니다. 선생님의 해석·가설과 민감한 대화는 선생님이 검토한 뒤 필요한 범위에서 직접 반영하세요.</div>
       <button class="btn secondary" id="feedbackMergeBtn" type="button">최근 리포트와 합쳐서 보내기</button>
-      <button class="btn kakao" id="kakaoShareFeedbackBtn" type="button" style="margin-top:8px;">카카오톡으로 공유하기</button>
+      <div class="btn-row">
+        <button class="btn kakao" id="kakaoShareFeedbackBtn" type="button">카카오톡으로 공유하기</button>
+        <button class="btn secondary" id="feedbackCopyBtn" type="button">초안 복사</button>
+      </div>
       <div class="hint">200자가 넘을 경우 자동 복사되니 바로 카톡에 붙여넣기 하면 됩니다.</div>
-      <button class="btn secondary" id="feedbackCopyBtn" type="button">초안 복사</button>
     </div>
   </div>
 
@@ -881,9 +893,11 @@ function renderReport(studentName, values, dateStr, narrativeText, sourceTag){
       <div class="edit-hint"><span class="eh-icon">✏️</span><span>클릭해서 내용을 직접 수정할 수 있어요! 수정한 내용 그대로 복사·공유돼요.</span></div>
       <div class="narrative-editable" id="reportNarrativeText" contenteditable="true">${narrativeText}</div>
     </div>
-    <button class="btn kakao" id="kakaoShareReportBtn" style="margin-top:8px;">카카오톡으로 공유하기</button>
+    <div class="btn-row">
+      <button class="btn kakao" id="kakaoShareReportBtn">카카오톡으로 공유하기</button>
+      <button class="btn secondary" id="copyLinkBtn">텍스트 복사</button>
+    </div>
     <div class="hint">200자가 넘을 경우 자동 복사되니 바로 카톡에 붙여넣기 하면 됩니다.</div>
-    <button class="btn secondary" id="copyLinkBtn" style="margin-top:8px;">텍스트 복사</button>
   `;
   document.getElementById("reportContent").innerHTML = html;
   // b18: 클릭하는 시점에 화면(직접 수정했을 수도 있는 내용)을 다시 읽어서 그 내용을 공유/복사합니다 —
