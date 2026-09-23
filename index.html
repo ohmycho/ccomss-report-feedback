@@ -111,7 +111,13 @@
     b22 (이 파일): "시연용 화면입니다..." 안내 문구(.demo-notice) 제거 — 다른 원장님께 보여줄 때
       실명을 넣지 말라는 안내였는데, 내부적으로 실명 입력해도 괜찮다고 합의되어 삭제 요청. (CSS
       클래스 .demo-notice 자체는 남겨둠 — 나중에 다시 필요하면 같은 마크업 한 줄만 추가하면 됨)
-  현재 빌드: b22 · 2026-09-23
+    b23 (이 파일): 200자 초과로 카카오톡 공유 대신 자동 복사되는 경우 안내를 강화 — 1) 카카오톡
+      공유 버튼 아래에 "200자가 넘을 경우 자동 복사되니 바로 카톡에 붙여넣기 하면 됩니다"라는 안내
+      문구를 항상 보이게 추가(리포트/피드백 둘 다). 2) 실제로 자동 복사되는 순간 뜨는 토스트 문구를
+      "복사되었습니다. 카톡에 붙여넣기 하세요"로 더 짧고 바로 이해되게 바꾸고, showToast()에 표시
+      시간(duration)을 선택적으로 받을 수 있게 해서 이 안내는 기존 1.8초 대신 3.5초 동안 떠 있게 함
+      (다른 토스트들은 기존과 동일하게 1.8초 유지).
+  현재 빌드: b23 · 2026-09-23
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -367,7 +373,7 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-version">v2.1 · idx b22</div>
+    <div class="topbar-version">v2.1 · idx b23</div>
     <button class="topbar-brand" id="homeBtn" type="button" aria-label="홈으로">
       <span class="brand-mark" aria-hidden="true"></span>
       <span id="brandNameTop">피드톡</span>
@@ -520,6 +526,7 @@
       <div class="review-note">이 초안은 관찰 기록만으로 작성했습니다. 선생님의 해석·가설과 민감한 대화는 선생님이 검토한 뒤 필요한 범위에서 직접 반영하세요.</div>
       <button class="btn secondary" id="feedbackMergeBtn" type="button">최근 리포트와 합쳐서 보내기</button>
       <button class="btn kakao" id="kakaoShareFeedbackBtn" type="button" style="margin-top:8px;">카카오톡으로 공유하기</button>
+      <div class="hint">200자가 넘을 경우 자동 복사되니 바로 카톡에 붙여넣기 하면 됩니다.</div>
       <button class="btn secondary" id="feedbackCopyBtn" type="button">초안 복사</button>
     </div>
   </div>
@@ -558,21 +565,23 @@ const KAKAO_TEXT_LIMIT = 200; // 카카오 기본 텍스트 템플릿 제한
 
 function shareTextViaKakao(text, buttonTitle){
   // b18: 복사가 실제로 성공했을 때만 성공 안내를 보여줍니다 (예전에는 항상 성공 메시지가 떴음)
-  const copyFallback = async (reason)=>{
+  // b23: duration을 선택적으로 받아서, 200자 초과로 자동 복사된 경우처럼 꼭 읽어야 하는 안내는
+  // 토스트가 더 오래 떠 있게 함(버튼 아래 항상 보이는 안내 문구와 별개로, 실제 동작 시점에도 알려줌).
+  const copyFallback = async (reason, duration)=>{
     try{
       if(!navigator.clipboard) throw new Error("clipboard API 없음");
       await navigator.clipboard.writeText(text);
-      showToast(reason);
+      showToast(reason, duration);
     }catch(e){
       showToast("복사에 실패했어요 — 내용을 직접 선택해 복사해주세요");
     }
   };
   if(!window.Kakao || !Kakao.isInitialized()){
-    copyFallback("카카오톡 공유를 불러오지 못해 대신 복사했어요 — 카카오톡에 붙여넣어 주세요");
+    copyFallback("카카오톡 공유를 불러오지 못해 대신 복사했어요 — 카카오톡에 붙여넣어 주세요", 3500);
     return;
   }
   if(text.length > KAKAO_TEXT_LIMIT){
-    copyFallback(`내용이 ${KAKAO_TEXT_LIMIT}자를 넘어 카카오톡 공유 대신 복사했어요 — 카카오톡에 직접 붙여넣어 주세요`);
+    copyFallback("복사되었습니다. 카톡에 붙여넣기 하세요", 3500);
     return;
   }
   try{
@@ -583,7 +592,7 @@ function shareTextViaKakao(text, buttonTitle){
       buttonTitle: buttonTitle || "자세히 보기",
     });
   }catch(e){
-    copyFallback("카카오톡 공유에 실패해 대신 복사했어요 — 카카오톡에 직접 붙여넣어 주세요");
+    copyFallback("카카오톡 공유에 실패해 대신 복사했어요 — 카카오톡에 직접 붙여넣어 주세요", 3500);
   }
 }
 
@@ -861,6 +870,7 @@ function renderReport(studentName, values, dateStr, narrativeText, sourceTag){
     </div>
     <div class="hint">✏️ 클릭해서 내용을 직접 수정한 뒤 복사·공유할 수 있어요. 수정한 내용이 그대로 전달됩니다.</div>
     <button class="btn kakao" id="kakaoShareReportBtn" style="margin-top:8px;">카카오톡으로 공유하기</button>
+    <div class="hint">200자가 넘을 경우 자동 복사되니 바로 카톡에 붙여넣기 하면 됩니다.</div>
     <button class="btn secondary" id="copyLinkBtn" style="margin-top:8px;">텍스트 복사</button>
   `;
   document.getElementById("reportContent").innerHTML = html;
@@ -1089,12 +1099,14 @@ document.getElementById("parentContact").addEventListener("input", (e)=>{
    토스트
 --------------------------------------------------------- */
 let toastTimer;
-function showToast(msg){
+// b23: duration(ms)을 선택적으로 받을 수 있게 — 중요한 안내(예: 200자 초과 자동복사)는
+// 기본 1.8초보다 더 오래 떠 있게 해서 읽을 시간을 줌. 생략하면 기존과 동일하게 1.8초.
+function showToast(msg, duration){
   const t = document.getElementById("toast");
   t.textContent = msg;
   t.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>t.classList.remove("show"), 1800);
+  toastTimer = setTimeout(()=>t.classList.remove("show"), duration || 1800);
 }
 
 /* ---------------------------------------------------------
