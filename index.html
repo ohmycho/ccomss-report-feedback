@@ -156,7 +156,12 @@
       6) 탭바 sticky 위치 — top:76px 하드코딩 대신, 헤더 실제 높이를 스크립트로 측정해
       --topbar-h 변수에 채우고 그 값을 사용하도록 변경(헤더 줄바꿈/폰트 로딩으로 높이가
       바뀌어도 탭바가 안 겹치게). CSS에는 76px를 fallback으로 남겨둠.
-  현재 빌드: b28 · 2026-09-23
+    b29 (이 파일): 상단 슬로건 재작성 — "AI가 학습 리포트와 부모님 피드백을 동시에"가 길고,
+      "리포트"/"피드백"이라는 두 단어가 실제로는 같은 기능(선생님 관찰 → 학부모에게 전할 말)의
+      포맷 차이일 뿐인데 억지로 구분해 보인다는 점, 그리고 "학부모 톡"이라고만 하면 학부모가
+      쓰는 건지 헷갈릴 수 있다는 점을 반영해 "AI가 뚝딱 써주는 학부모 톡 (선생님용)"으로 변경.
+      "(선생님용)" 부분은 별도 span(.tt-target)으로 감싸 본문보다 한 단계 옅게 표시.
+  현재 빌드: b29 · 2026-09-23
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -208,6 +213,9 @@
     font-size:10px;font-weight:500;opacity:0.38;letter-spacing:0.01em;
   }
   .topbar-title{font-size:13px;font-weight:400;opacity:0.7;margin-top:4px;}
+  /* b28: 슬로건에 "(선생님용)" 대상 표시를 덧붙이되, 핵심 카피보다 한 단계 옅게 보이도록 —
+     부모 opacity(0.7) 위에 추가로 곱해져서 본문보다 더 흐리게 보임 */
+  .topbar-title .tt-target{opacity:0.75;}
   .topbar-brand{
     font-size:22px;font-weight:700;display:flex;align-items:center;gap:8px;
     border:none;background:transparent;color:#fff;font-family:inherit;padding:2px 0;
@@ -451,12 +459,12 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-version">v2.1 · idx b28</div>
+    <div class="topbar-version">v2.1 · idx b29</div>
     <button class="topbar-brand" id="homeBtn" type="button" aria-label="홈으로">
       <span class="brand-mark" aria-hidden="true"></span>
       <span id="brandNameTop">피드톡</span>
     </button>
-    <div class="topbar-title">AI가 학습 리포트와 부모님 피드백을 동시에</div>
+    <div class="topbar-title">AI가 뚝딱 써주는 학부모 톡 <span class="tt-target">(선생님용)</span></div>
   </div>
 
   <div class="mode-picker" aria-label="도구 선택">
