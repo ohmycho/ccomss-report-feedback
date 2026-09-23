@@ -161,7 +161,23 @@
       포맷 차이일 뿐인데 억지로 구분해 보인다는 점, 그리고 "학부모 톡"이라고만 하면 학부모가
       쓰는 건지 헷갈릴 수 있다는 점을 반영해 "AI가 뚝딱 써주는 학부모 톡 (선생님용)"으로 변경.
       "(선생님용)" 부분은 별도 span(.tt-target)으로 감싸 본문보다 한 단계 옅게 표시.
-  현재 빌드: b29 · 2026-09-23
+    b30 (이 파일): 대표님이 실제 화면 캡처로 짚어준 문제 3건.
+      1) [원인 규명] AI 생성 리포트 결과 화면에서 라벨/안내문구/본문 사이 간격이 비정상적으로
+      넓어 보이던 문제 — margin 수치 문제가 아니라, .narrative 컨테이너에 걸려 있던
+      white-space:pre-wrap이 템플릿 리터럴 안의 들여쓰기 줄바꿈(각 div 사이의 "\n      ")까지
+      그대로 렌더링해 빈 줄처럼 찍히고 있었음(Playwright로 실측: 정상 6~8px여야 할 간격이
+      58~62px로 나옴). white-space:pre-wrap을 컨테이너가 아니라 실제 줄바꿈이 필요한
+      본문 요소(.narrative-editable)로 옮겨서 해결 — .feedback-text는 원래 자기 자신에게
+      걸려 있어 이 버그가 없었음(그래서 피드백 화면은 멀쩡했던 것).
+      2) 카톡공유/텍스트복사 버튼 아래 안내 문구가 왼쪽 정렬돼 있어 가운데 배치된 버튼 두 개와
+      안 맞아 보이던 문제 — 이 문구(.btn-row 바로 다음의 .hint)만 중앙 정렬(다른 위치의 안내
+      문구는 원래 왼쪽 정렬 유지).
+      3) AI 리포트/피드백 생성 버튼 — 대기 중 버튼 텍스트만 바뀌어서 멈췄거나 오류난 것처럼
+      보일 수 있던 문제. 흰색 회전 스피너를 텍스트 앞에 추가하고, 로딩 중에는 버튼이
+      흐려지지(opacity 0.45) 않도록 별도 상태(.is-loading)를 둬서 "지금 활발히 작동 중"이라는
+      게 분명히 보이게 함(setBtnLoading/restoreBtn 헬퍼로 정리, 원래 버튼 마크업은
+      dataset에 저장해뒀다가 정확히 복원).
+  현재 빌드: b30 · 2026-09-23
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -298,6 +314,19 @@
   }
   .btn:active{opacity:0.85;transform:scale(0.97);}
   .btn:disabled{opacity:0.45;cursor:not-allowed;transform:none;}
+  /* b30: AI 생성 대기 중임을 명확히 보여주는 로딩 상태 — 버튼 텍스트만 바뀌던 걸로는
+     "멈췄나/오류났나" 오해를 살 수 있어서, 버튼 자체는 disabled(클릭 방지)면서도
+     opacity는 죽이지 않고(is-loading이 :disabled의 0.45를 덮어씀) 스피너를 돌려
+     "지금 활발히 작동 중"이라는 걸 시각적으로 보여줌 */
+  .btn:disabled.is-loading{opacity:1;cursor:wait;}
+  .btn-spinner{
+    display:inline-block;width:15px;height:15px;margin-right:7px;vertical-align:-3px;
+    border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;
+    animation:btnSpin .7s linear infinite;
+  }
+  .btn.secondary .btn-spinner{border-color:rgba(13,27,62,.25);border-top-color:var(--brand-primary);}
+  @keyframes btnSpin{to{transform:rotate(360deg);}}
+  @media (prefers-reduced-motion: reduce){ .btn-spinner{animation:none;} }
   .btn.secondary{background:#fff;border:1.5px solid var(--brand-primary);color:var(--brand-primary);}
   .btn.small{width:auto;padding:10px 16px;font-size:13px;font-weight:600;min-height:auto;}
   /* 카카오 브랜드 가이드: 배경 #FEE500(카카오 옐로), 텍스트/아이콘 #191919 */
@@ -310,6 +339,10 @@
      "거의 같은 기능인데 세로로 두 번 강조된" 느낌을 줄임 — 둘 다 폭을 절반씩 나눠 가짐 */
   .btn-row{display:flex;gap:8px;margin-top:8px;}
   .btn-row .btn{width:auto;flex:1;margin-top:0;padding-left:8px;padding-right:8px;}
+  /* b30: 카톡공유/텍스트복사 버튼 아래 안내 문구는 왼쪽으로 붙어 있었는데, 버튼 두 개가
+     가운데 기준으로 나란히 있는 레이아웃이라 왼쪽 정렬이면 붕 떠 보임 — 이 문구만 중앙 정렬.
+     (다른 위치의 .hint는 왼쪽 정렬 유지해야 해서 전체가 아니라 이 경우만 지정) */
+  .btn-row + .hint{text-align:center;}
 
   .hint{font-size:13px;color:var(--text-sub);line-height:1.5;margin-top:6px;}
   /* b24: 결과가 나오자마자 바로 보이도록, "직접 수정 가능" 안내를 눈에 띄는 배지 형태로 강조 */
@@ -343,11 +376,17 @@
   .score-box .sb-label{font-size:11px;opacity:0.7;margin-bottom:4px;}
   .score-box .sb-value{font-size:18px;font-weight:700;color:var(--brand-accent);}
 
-  .narrative{background:#fff;border-radius:var(--radius-lg);padding:18px;line-height:1.75;font-size:15.5px;white-space:pre-wrap;}
-  .narrative-label{font-size:12px;font-weight:700;color:var(--brand-sub);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+  /* b30: 진짜 원인을 찾음 — 아래 white-space:pre-wrap이 컨테이너(.narrative)에 걸려 있으면,
+     템플릿 리터럴 안의 들여쓰기 줄바꿈(라벨/힌트/본문 div 사이의 "\n      ")까지 그대로
+     보존돼서 빈 줄처럼 렌더링됨(margin 문제가 아니라 실제로 공백 텍스트 노드가 찍힌 것이었음,
+     Playwright로 실측 확인). white-space:pre-wrap은 실제 줄바꿈이 필요한 본문 텍스트
+     요소(.narrative-editable)에만 걸어야 함 — .feedback-text는 원래도 자기 자신에게 걸려
+     있어서 이 문제가 없었음. */
+  .narrative{background:#fff;border-radius:var(--radius-lg);padding:18px;line-height:1.75;font-size:15.5px;}
+  .narrative-label{font-size:12px;font-weight:700;color:var(--brand-sub);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
   /* b18: AI 생성 결과를 선생님이 직접 수정할 수 있도록 contenteditable 영역 스타일 */
   .narrative-editable, .feedback-text{
-    outline:none;border-radius:var(--radius-sm);margin:-6px;padding:6px;
+    outline:none;border-radius:var(--radius-sm);margin:-6px;padding:6px;white-space:pre-wrap;
     transition:background .15s ease, box-shadow .15s ease;
   }
   .narrative-editable:focus, .feedback-text:focus{
@@ -459,7 +498,7 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-version">v2.1 · idx b29</div>
+    <div class="topbar-version">v2.1 · idx b30</div>
     <button class="topbar-brand" id="homeBtn" type="button" aria-label="홈으로">
       <span class="brand-mark" aria-hidden="true"></span>
       <span id="brandNameTop">피드톡</span>
@@ -736,6 +775,26 @@ const ALL_FIELDS = [...CORE_FIELDS, ...OPTIONAL_FIELDS];
 function fieldById(id){ return ALL_FIELDS.find(f=>f.id===id); }
 function escapeHtml(value){
   return String(value).replace(/[&<>"']/g, char=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[char]);
+}
+
+/* ---------------------------------------------------------
+   b30: AI 생성 버튼 로딩 상태 — 버튼 텍스트만 바꾸던 걸 스피너+문구 조합으로 바꿔서
+   "지금 활발히 작동 중"이라는 게 눈에 확실히 보이게 함. 원래 버튼의 innerHTML을
+   dataset에 그대로 저장해두었다가 restoreBtn에서 정확히 복원(텍스트만 다시 조립하지 않음).
+--------------------------------------------------------- */
+function setBtnLoading(btn, loadingText){
+  if(btn.dataset.idleHtml === undefined) btn.dataset.idleHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.classList.add("is-loading");
+  btn.innerHTML = `<span class="btn-spinner" aria-hidden="true"></span>${escapeHtml(loadingText)}`;
+}
+function restoreBtn(btn){
+  btn.disabled = false;
+  btn.classList.remove("is-loading");
+  if(btn.dataset.idleHtml !== undefined){
+    btn.innerHTML = btn.dataset.idleHtml;
+    delete btn.dataset.idleHtml;
+  }
 }
 
 /* ---------------------------------------------------------
@@ -1162,21 +1221,21 @@ document.getElementById("generateBtn").addEventListener("click", async ()=>{
   const btn = document.getElementById("generateBtn");
   const errBox = document.getElementById("reportGenError");
   errBox.style.display = "none"; errBox.textContent = "";
-  btn.disabled = true; btn.textContent = "AI가 리포트를 작성하고 있어요...";
+  setBtnLoading(btn, "AI가 리포트를 작성하고 있어요");
   showToast("리포트 생성 중...");
 
   let text, source;
   try{
     ({ text, source } = await generateNarrative(studentName, values));
   }catch(e){
-    btn.disabled = false; btn.textContent = "AI 리포트 생성하기";
+    restoreBtn(btn);
     errBox.textContent = `⚠️ 리포트를 생성하지 못했어요: ${e.message} — 다시 시도해주세요.`;
     errBox.style.display = "block";
     showToast("리포트 생성에 실패했어요");
     return;
   }
 
-  btn.disabled = false; btn.textContent = "AI 리포트 생성하기";
+  restoreBtn(btn);
   renderReport(studentName, values, dateStr, text, source);
   saveHistoryItem(currentBrandId, { studentName, values, date: dateStr, narrative: text, source });
   switchTab("report");
@@ -1353,21 +1412,21 @@ document.getElementById("feedbackGenerateBtn").addEventListener("click", async (
   const btn = document.getElementById("feedbackGenerateBtn");
   const errBox = document.getElementById("feedbackGenError");
   errBox.style.display = "none"; errBox.textContent = "";
-  btn.disabled = true; btn.textContent = "AI가 초안을 작성하고 있어요...";
+  setBtnLoading(btn, "AI가 초안을 작성하고 있어요");
   showToast("초안 생성 중...");
 
   let text, source;
   try{
     ({ text, source } = await generateFeedbackDraft(student, session, start, action, learningPoint, quote, next, home));
   }catch(e){
-    btn.disabled = false; btn.textContent = "학부모용 초안 만들기";
+    restoreBtn(btn);
     errBox.textContent = `⚠️ 초안을 생성하지 못했어요: ${e.message} — 다시 시도해주세요.`;
     errBox.style.display = "block";
     showToast("초안 생성에 실패했어요");
     return;
   }
 
-  btn.disabled = false; btn.textContent = "학부모용 초안 만들기";
+  restoreBtn(btn);
   feedbackDraft = text;
   // 생성 당시의 입력값을 스냅샷으로 묶어 저장 — 이후 입력이 바뀌면 이 스냅샷과 비교해 감지합니다.
   feedbackDraftMeta = { inputs: currentFeedbackInputs(), generatedAt: Date.now() };
