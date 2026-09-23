@@ -104,7 +104,11 @@
       bounding box 기준으로 다시 중앙정렬. 2) 홈화면에 추가할 때 표시되는 앱 이름이 "피드톡 —
       학습리포트·부모님피드백 데모"로 길어서 "피드톡—학습…"처럼 잘리던 문제 — <title>을 "피드톡"만
       남기고, iOS 홈화면 이름을 명시적으로 고정하는 apple-mobile-web-app-title 메타 태그도 "피드톡"으로 추가.
-  현재 빌드: b20 · 2026-09-23
+    b21 (이 파일): 1) 도구 선택 버튼("학습 리포트"/"부모님 피드백")에 붙어있던 ①/② 번호 제거 —
+      두 도구는 순서가 있는 단계가 아니라 서로 독립된 도구라서 번호가 오히려 "1번부터 순서대로"라는
+      오해를 줄 수 있어 삭제. 2) 상단 슬로건 "AI가 학습리포트와 부모님피드백을 동시에"에 띄어쓰기
+      추가 → "AI가 학습 리포트와 부모님 피드백을 동시에".
+  현재 빌드: b21 · 2026-09-23
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -360,17 +364,17 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-version">v2.1 · idx b20</div>
+    <div class="topbar-version">v2.1 · idx b21</div>
     <button class="topbar-brand" id="homeBtn" type="button" aria-label="홈으로">
       <span class="brand-mark" aria-hidden="true"></span>
       <span id="brandNameTop">피드톡</span>
     </button>
-    <div class="topbar-title">AI가 학습리포트와 부모님피드백을 동시에</div>
+    <div class="topbar-title">AI가 학습 리포트와 부모님 피드백을 동시에</div>
   </div>
 
   <div class="mode-picker" aria-label="도구 선택">
-    <button class="mode-btn active" id="reportModeBtn" type="button"><strong>① 학습 리포트</strong><span>평가 항목 입력 → 학습 리포트</span></button>
-    <button class="mode-btn" id="feedbackModeBtn" type="button"><strong>② 부모님 피드백</strong><span>수업 관찰 입력 → 학부모 피드백</span></button>
+    <button class="mode-btn active" id="reportModeBtn" type="button"><strong>학습 리포트</strong><span>평가 항목 입력 → 학습 리포트</span></button>
+    <button class="mode-btn" id="feedbackModeBtn" type="button"><strong>부모님 피드백</strong><span>수업 관찰 입력 → 학부모 피드백</span></button>
   </div>
   <div class="demo-notice">시연용 화면입니다. 실제 학생 이름·상담 내용·연락처를 입력하지 마세요.</div>
 
