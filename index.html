@@ -184,7 +184,25 @@
       buildFeedbackDraftLocal)은 API 호출이 아니라 고정 로직이라 완전한 변주는 못 주지만,
       최소한의 다양성을 위해 미리 준비한 문구 3개 중 하나를 무작위로 고르는 pickClosingLine()을
       추가해 씀. functions 폴더도 같이 재배포해야 실제 반영됨.
-  현재 빌드: b31 · 2026-09-23
+    b32 (이 파일만, functions는 손대지 않음): "학습 리포트" 위저드의 STEP2/3 분류를
+      "핵심 진단 항목(모든 학원 공통)/확장 진단 항목(학원 설정 on-off)"이라는 개발자 관점 용어에서
+      "학습 성취·수준 / 학습 태도·정서"라는 사용자 관점 용어로 재구성. 각 필드 정의(CORE_FIELDS/
+      OPTIONAL_FIELDS)에 category("achievement"|"attitude")를 추가해 두고, 위저드 STEP2/3는 이제
+      category 기준으로 항목을 모아 보여줌 — 코어/확장(브랜드별 on-off 토글) 메커니즘 자체는
+      그대로 유지되며(필드 설정 탭, enabledCore/enabledOptional 로직 무변경), 두 기준이 서로
+      교차하는 필드도 있어(예: teacherNote는 코어이지만 태도·정서 카테고리) category로 다시 필터링만
+      추가함. 상단 탭 메뉴 "진단 입력"도 "피드백 작성"으로 이름 변경(서비스명 '피드톡'과 더 자연스럽게
+      맞도록). "학습 리포트"/"부모님 피드백" 두 도구를 하나로 합치는 것은 이번 범위에서 제외
+      (대표님이 라벨/분류 변경만 우선 진행하기로 확정).
+    b33: 상단 탭 메뉴 "필드 설정" → "항목 설정"으로 이름 변경(요청하신 "피드백 작성 | 항목 설정 |
+      리포트 | 이력" 메뉴 구성에 맞춤). 탭 라벨과, 그 탭을 안내하는 문구(설정 안내 배너, 버튼,
+      항목 없음 안내 메시지)까지 전부 함께 바꿈. '항목 설정' 탭 내부의 "코어 항목/확장 모듈"
+      섹션 이름과 on/off 로직은 그대로 둠 — 이번 요청은 상단 메뉴명 변경까지만.
+    b34: '항목 설정' 탭 안의 "코어 항목/확장 모듈"이라는 개발 용어를 "기본 항목/선택 항목"으로
+      바꿔서 더 쉽게 읽히도록 함(기본 항목 = 모든 학원 공통·항상 사용, 선택 항목 = 학원별로
+      켜고 끌 수 있음). 안내 문구, 카드 제목, 각 항목 옆 작은 태그("코어"→"기본", "확장"→"선택")
+      까지 전부 함께 바꿈. enabledCore/enabledOptional 로직과 브랜드별 저장 방식은 그대로 유지.
+  현재 빌드: b34 · 2026-09-23
   ----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
@@ -505,7 +523,7 @@
 <div class="app" id="app">
 
   <div class="topbar">
-    <div class="topbar-version">v2.1 · idx b31</div>
+    <div class="topbar-version">v2.1 · idx b34</div>
     <button class="topbar-brand" id="homeBtn" type="button" aria-label="홈으로">
       <span class="brand-mark" aria-hidden="true"></span>
       <span id="brandNameTop">피드톡</span>
@@ -519,8 +537,8 @@
   </div>
 
   <div class="tabs">
-    <div class="tab active" data-tab="input"><span class="tab-label">진단 입력</span></div>
-    <div class="tab" data-tab="config"><span class="tab-label">필드 설정</span></div>
+    <div class="tab active" data-tab="input"><span class="tab-label">피드백 작성</span></div>
+    <div class="tab" data-tab="config"><span class="tab-label">항목 설정</span></div>
     <div class="tab" data-tab="report"><span class="tab-label">리포트</span></div>
     <div class="tab" data-tab="history"><span class="tab-label">이력</span></div>
   </div>
@@ -543,30 +561,30 @@
       </div>
     </div>
 
-    <!-- STEP 2: 코어 진단 항목 (안내 배너는 여기, 항목 입력 직전에) -->
+    <!-- STEP 2: 학습 성취·수준 (안내 배너는 여기, 항목 입력 직전에) -->
     <div class="wizard-step" data-step="2">
       <div class="setup-notice" id="setupNotice">
-        <div class="sn-title">📋 진단 항목 입력 전에 먼저 확인해주세요</div>
+        <div class="sn-title">📋 항목 입력 전에 먼저 확인해주세요</div>
         <div class="sn-body">
-          학원마다 쓰는 진단 항목이 달라서, 입력 전에 <b>'필드 설정'</b> 탭에서 우리 학원에 맞는 항목이 켜져 있는지 확인해주세요.
+          학원마다 쓰는 평가 항목이 달라서, 입력 전에 <b>'항목 설정'</b> 탭에서 우리 학원에 맞는 항목이 켜져 있는지 확인해주세요.
           혹시 필요한 항목이 안 보이면 대표님께 알려주세요 — 검토 후 추가해드립니다.
         </div>
         <div class="sn-actions">
-          <button class="sn-btn primary" id="goToConfigBtn">필드 설정 확인하러 가기</button>
+          <button class="sn-btn primary" id="goToConfigBtn">항목 설정 확인하러 가기</button>
           <button class="sn-btn ghost" id="dismissNoticeBtn">확인했어요, 그만 보기</button>
         </div>
       </div>
       <div class="card">
-        <div class="card-title">핵심 진단 항목 <small>모든 학원 공통</small></div>
-        <div id="coreFieldsInput"></div>
+        <div class="card-title">학습 성취·수준 <small>진도 · 이해도 · 정확도 등</small></div>
+        <div id="achievementFieldsInput"></div>
       </div>
     </div>
 
-    <!-- STEP 3: 확장 진단 항목 -->
+    <!-- STEP 3: 학습 태도·정서 -->
     <div class="wizard-step" data-step="3">
       <div class="card">
-        <div class="card-title">확장 진단 항목 <small>학원 설정에서 켠 항목만 표시됩니다</small></div>
-        <div id="optionalFieldsInput"></div>
+        <div class="card-title">학습 태도·정서 <small>수업 중 관찰되는 태도와 감정</small></div>
+        <div id="attitudeFieldsInput"></div>
       </div>
     </div>
 
@@ -590,15 +608,15 @@
   <!-- CONFIG PANEL -->
   <div class="panel" id="panel-config">
     <div class="field-config-note">
-      학원(브랜드)마다 진단에 쓰는 항목이 다를 수 있어요. 코어 항목은 항상 켜져 있고, 확장 모듈은 원장님이 선택적으로 켜고 끌 수 있습니다. 설정은 브랜드별로 저장됩니다.
+      학원(브랜드)마다 진단에 쓰는 항목이 다를 수 있어요. 기본 항목은 모든 학원에서 항상 사용하고, 선택 항목은 원장님이 필요에 따라 켜고 끌 수 있습니다. 설정은 브랜드별로 저장됩니다.
       <br><br><b>원하는 항목이 목록에 없나요?</b> 대표님께 알려주시면 검토 후 새 항목으로 추가해드립니다.
     </div>
     <div class="card">
-      <div class="card-title">코어 항목 <small>항상 사용</small></div>
+      <div class="card-title">기본 항목 <small>모든 학원 공통, 항상 사용</small></div>
       <div id="coreToggleList"></div>
     </div>
     <div class="card">
-      <div class="card-title">확장 모듈 <small>선택 사용</small></div>
+      <div class="card-title">선택 항목 <small>학원별로 켜고 끌 수 있음</small></div>
       <div id="optionalToggleList"></div>
     </div>
   </div>
@@ -606,7 +624,7 @@
   <!-- REPORT PANEL -->
   <div class="panel" id="panel-report">
     <div id="reportContent">
-      <div class="empty">아직 생성된 리포트가 없어요.<br>진단 입력 탭에서 리포트를 생성해보세요.</div>
+      <div class="empty">아직 생성된 리포트가 없어요.<br>피드백 작성 탭에서 리포트를 생성해보세요.</div>
     </div>
   </div>
 
@@ -762,20 +780,24 @@ const BRANDS = {
   // 다른 학원/브랜드를 붙일 때는 이 자리에 같은 형식으로 추가 (id, name, colors만 바꾸면 됨)
 };
 
+/* b32: 각 필드에 category("achievement"=학습 성취·수준 / "attitude"=학습 태도·정서)를 추가.
+   코어/확장(브랜드별 on-off 토글) 분류는 그대로 유지하면서, 위저드 화면에는 이 category
+   기준으로 다시 그룹핑해서 보여준다 — 사용자에게 "코어/확장"이라는 개발 용어 대신
+   "무엇을 평가하는가"라는 더 직관적인 기준으로 항목을 나눠 보여주기 위함. */
 const CORE_FIELDS = [
-  { id:"unitScore", label:"단원별 점수", type:"number", placeholder:"예: 82", suffix:"점", min:0, max:100 },
-  { id:"wrongType", label:"오답 유형", type:"select", options:["연산 실수","개념 미이해","시간 부족","문제 해석 오류"] },
-  { id:"attendance", label:"출석/과제 이행률", type:"number", placeholder:"예: 90", suffix:"%", step:5, min:0, max:100 },
-  { id:"teacherNote", label:"원장님 주관 평가 (태도/이해도)", type:"textarea", placeholder:"예: 수업 집중도는 좋으나 응용문제에서 자신감이 떨어짐", maxlength:200 }
+  { id:"unitScore", label:"단원별 점수", type:"number", placeholder:"예: 82", suffix:"점", min:0, max:100, category:"achievement" },
+  { id:"wrongType", label:"오답 유형", type:"select", options:["연산 실수","개념 미이해","시간 부족","문제 해석 오류"], category:"achievement" },
+  { id:"attendance", label:"출석/과제 이행률", type:"number", placeholder:"예: 90", suffix:"%", step:5, min:0, max:100, category:"achievement" },
+  { id:"teacherNote", label:"원장님 주관 평가 (태도/이해도)", type:"textarea", placeholder:"예: 수업 집중도는 좋으나 응용문제에서 자신감이 떨어짐", maxlength:200, category:"attitude" }
 ];
 
 const OPTIONAL_FIELDS = [
-  { id:"studyTime", label:"주간 학습시간 / 진도율", type:"text", placeholder:"예: 주 5시간, 진도 92%" },
-  { id:"trend", label:"최근 성적 추이", type:"select", options:["상승","유지","하락","변동 큼"] },
-  { id:"peerRank", label:"또래 대비 백분위", type:"number", placeholder:"예: 상위 20% → 20 입력" },
-  { id:"focus", label:"집중도/행동 관찰", type:"select", options:["매우 좋음","양호","보통","개선 필요"] },
-  { id:"consultNote", label:"최근 상담 이력 요약", type:"textarea", placeholder:"예: 지난달 상담에서 서술형 문제 보완 요청", maxlength:200 },
-  { id:"diaryEmotion", label:"코칭 다이어리 감정 태그", type:"select", options:["의욕적","안정적","불안","무기력","혼합"] }
+  { id:"studyTime", label:"주간 학습시간 / 진도율", type:"text", placeholder:"예: 주 5시간, 진도 92%", category:"achievement" },
+  { id:"trend", label:"최근 성적 추이", type:"select", options:["상승","유지","하락","변동 큼"], category:"achievement" },
+  { id:"peerRank", label:"또래 대비 백분위", type:"number", placeholder:"예: 상위 20% → 20 입력", category:"achievement" },
+  { id:"focus", label:"집중도/행동 관찰", type:"select", options:["매우 좋음","양호","보통","개선 필요"], category:"attitude" },
+  { id:"consultNote", label:"최근 상담 이력 요약", type:"textarea", placeholder:"예: 지난달 상담에서 서술형 문제 보완 요청", maxlength:200, category:"attitude" },
+  { id:"diaryEmotion", label:"코칭 다이어리 감정 태그", type:"select", options:["의욕적","안정적","불안","무기력","혼합"], category:"attitude" }
 ];
 
 const ALL_FIELDS = [...CORE_FIELDS, ...OPTIONAL_FIELDS];
@@ -925,22 +947,37 @@ function renderFieldGroup(fieldList, containerId, emptyMsg, preserveValues){
   });
 }
 
-function renderCoreFieldsInput(){
-  const ids = BRANDS[currentBrandId].enabledCore;
-  renderFieldGroup(ids.map(fieldById).filter(Boolean), "coreFieldsInput");
-}
-function renderOptionalFieldsInput(preserveValues){
+/* b32: 코어/확장 on-off 메커니즘(enabledCore·enabledOptional)은 그대로 두고,
+   각 카테고리(achievement/attitude)에 속한 항목만 걸러서 해당 위저드 스텝에 그린다. */
+function renderAchievementFieldsInput(preserveValues){
   const cfg = getConfig(currentBrandId);
+  const ids = [
+    ...BRANDS[currentBrandId].enabledCore.filter(id => fieldById(id)?.category === "achievement"),
+    ...cfg.enabledOptional.filter(id => fieldById(id)?.category === "achievement")
+  ];
   renderFieldGroup(
-    cfg.enabledOptional.map(fieldById).filter(Boolean),
-    "optionalFieldsInput",
-    "이 학원에는 켜진 확장 항목이 없어요. '필드 설정' 탭에서 추가할 수 있습니다.",
+    ids.map(fieldById).filter(Boolean),
+    "achievementFieldsInput",
+    "표시할 항목이 없어요. '항목 설정' 탭에서 켜주세요.",
     preserveValues
   );
 }
-function renderAllInputFields(){
-  renderCoreFieldsInput();
-  renderOptionalFieldsInput();
+function renderAttitudeFieldsInput(preserveValues){
+  const cfg = getConfig(currentBrandId);
+  const ids = [
+    ...BRANDS[currentBrandId].enabledCore.filter(id => fieldById(id)?.category === "attitude"),
+    ...cfg.enabledOptional.filter(id => fieldById(id)?.category === "attitude")
+  ];
+  renderFieldGroup(
+    ids.map(fieldById).filter(Boolean),
+    "attitudeFieldsInput",
+    "표시할 항목이 없어요. '항목 설정' 탭에서 켜주세요.",
+    preserveValues
+  );
+}
+function renderAllInputFields(preserveValues){
+  renderAchievementFieldsInput(preserveValues);
+  renderAttitudeFieldsInput(preserveValues);
 }
 
 /* ---------------------------------------------------------
@@ -952,7 +989,7 @@ function renderConfigToggles(){
   coreList.innerHTML = BRANDS[currentBrandId].enabledCore.map(id=>{
     const f = fieldById(id);
     return `<div class="toggle-row">
-      <div class="label">${f.label}<span class="tag core">코어</span></div>
+      <div class="label">${f.label}<span class="tag core">기본</span></div>
       <label class="switch"><input type="checkbox" checked disabled><span class="slider"></span></label>
     </div>`;
   }).join("");
@@ -961,7 +998,7 @@ function renderConfigToggles(){
   optList.innerHTML = OPTIONAL_FIELDS.map(f=>{
     const checked = cfg.enabledOptional.includes(f.id) ? "checked" : "";
     return `<div class="toggle-row">
-      <div class="label">${f.label}<span class="tag">확장</span></div>
+      <div class="label">${f.label}<span class="tag">선택</span></div>
       <label class="switch"><input type="checkbox" data-toggle="${f.id}" ${checked}><span class="slider"></span></label>
     </div>`;
   }).join("");
@@ -973,7 +1010,7 @@ function renderConfigToggles(){
       if(el.checked){ if(!cfg.enabledOptional.includes(id)) cfg.enabledOptional.push(id); }
       else { cfg.enabledOptional = cfg.enabledOptional.filter(x=>x!==id); }
       saveConfig(currentBrandId, cfg);
-      renderOptionalFieldsInput(true); // b18: 설정 변경으로 다시 그릴 때는 이미 입력한 값을 유지
+      renderAllInputFields(true); // b18/b32: 설정 변경으로 다시 그릴 때는 이미 입력한 값을 유지 (두 카테고리 모두 다시 그림)
       showToast(el.checked ? "항목이 켜졌습니다" : "항목이 꺼졌습니다");
     });
   });
@@ -984,7 +1021,7 @@ function renderConfigToggles(){
 --------------------------------------------------------- */
 function collectInputValues(){
   const values = {};
-  document.querySelectorAll("#coreFieldsInput [data-field], #optionalFieldsInput [data-field]").forEach(el=>{
+  document.querySelectorAll("#achievementFieldsInput [data-field], #attitudeFieldsInput [data-field]").forEach(el=>{
     values[el.dataset.field] = el.value;
   });
   return values;
@@ -1173,7 +1210,7 @@ document.getElementById("homeBtn").addEventListener("click", ()=>{
 /* ---------------------------------------------------------
    위저드 (4단계: 학생정보 → 코어항목 → 확장항목 → 확인/생성)
 --------------------------------------------------------- */
-const WIZARD_LABELS = { 1:"학생 정보", 2:"핵심 진단 항목", 3:"확장 진단 항목", 4:"입력 내용 확인" };
+const WIZARD_LABELS = { 1:"학생 정보", 2:"학습 성취·수준", 3:"학습 태도·정서", 4:"입력 내용 확인" };
 let wizardStep = 1;
 
 function renderReviewSummary(){
